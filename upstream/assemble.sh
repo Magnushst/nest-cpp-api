@@ -20,7 +20,9 @@ BRANCH="${BRANCH:-cpp-api}"
 WORK="${1:-${HOME}/.cache/nest-cpp-pr}"
 TREE="${WORK}/nest-simulator"
 
-rm -rf "${WORK}"; mkdir -p "${WORK}"
+# Only the clone is replaced. Anything else in the work directory, such as a
+# build of the branch, is left alone.
+rm -rf "${TREE}"; mkdir -p "${WORK}"
 git clone --quiet --no-hardlinks "${NEST_SOURCE}" "${TREE}"
 cd "${TREE}"
 git checkout --quiet -b "${BRANCH}"
