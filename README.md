@@ -57,6 +57,7 @@ build.sh                     builds every model directory
 | `brunel/check.sh` | Builds and runs all three and fails on any difference. |
 | `brunel/state_check.py` | Asks whether the network behaves as the theory says. |
 | `brunel/scaling.sh` | Sweeps thread count and reports NEST's own timers. |
+| `brunel/parity.sh` | Times all three against each other, C++ versus PyNEST. |
 
 A second model is a new directory beside `brunel/`. `build.sh` picks it up with
 no change.
@@ -189,6 +190,47 @@ Two caveats, both real:
   assertions are live inside the kernel. That is a property of the NEST build
   and not something this project can change or should work around.
 
+### Against PyNEST
+
+`brunel/parity.sh` runs the same network, single threaded, through all three
+implementations and reports both NEST's own phase timers and the wall clock of
+the whole process. Minimum of three timed runs, one warm-up discarded, same
+machine and mask as above:
+
+| | Create (s) | Connect (s) | Simulate (s) | Whole process (s) |
+| --- | --- | --- | --- | --- |
+| Python | 0.006 | 1.342 | 12.578 | 16.648 |
+| C++, kernel API | 0.007 | 1.273 | 12.401 | 16.238 |
+| C++, `nest_cpp` | 0.007 | 1.271 | 12.157 | 15.970 |
+
+The kernel phases agree, which is the expected result: all three processes
+execute the same `libnestkernel.a` over the same network in the same order. The
+largest gap, 0.42 s on simulate, is smaller than the spread across the three
+Python runs themselves (12.578 to 13.025 s), so this measurement does not
+resolve it and it must not be read as C++ simulating faster.
+
+What the wall clock does resolve is the cost of the driver. Subtracting the
+three phase timers from the whole-process time, run by run, leaves 2.68 to
+2.73 s for Python and 2.51 to 2.59 s for C++. Those bands do not overlap, so
+PyNEST really does cost about 0.15 s more, and that is where the interpreter
+start-up and the module imports live: roughly 1% of a 16 s run. The remaining
+2.5 s common to both is kernel start-up, model registration, `prepare` and
+`cleanup`, and flushing the spike files.
+
+So C++ is at parity, and that is the honest ceiling. PyNEST is a thin driver
+over the same kernel, and a model of this shape issues about a dozen calls into
+it, so there is no interpreter overhead to recover. The case for a C++ API is
+that C++ callers can link against NEST at all, not that the simulation runs
+faster.
+
+A profiler was not needed for this and was not used. Both processes run the
+same object code for over 98% of their time, and the residual difference is
+0.15 s of Python start-up, which the wall clock already separates. `perf` would
+only re-measure the same kernel twice.
+
+Absolute times shift by a few percent between sessions, so compare within a
+table and not across the two above.
+
 ## Running it
 
 See [docs/03_build_and_run.md](docs/03_build_and_run.md). In short:
@@ -197,6 +239,7 @@ See [docs/03_build_and_run.md](docs/03_build_and_run.md). In short:
 NEST_BUILD=/path/to/nest/build ./build.sh
 brunel/check.sh
 brunel/scaling.sh
+brunel/parity.sh
 ```
 
 `NEST_BUILD` must be a configured and built NEST source tree, not an install

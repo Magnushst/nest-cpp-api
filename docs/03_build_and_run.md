@@ -129,6 +129,28 @@ firing rate stays near 28.5 Hz, so the runs are statistically equivalent, but
 they are not the same run. This is why the default is one thread and why
 `check.sh` does not vary it.
 
+## Compare against PyNEST
+
+```sh
+brunel/parity.sh [scratch-dir]
+```
+
+Runs the same network single threaded through the Python reference, the raw C++
+program and the `nest_cpp` one, three timed runs each after a discarded warm-up,
+and prints two clocks side by side: NEST's own create, connect and simulate
+timers, and the wall clock of the whole process. Override with `REPEATS` and
+`MASK`.
+
+The phase timers answer whether the kernel does the same work, and they do agree.
+The whole-process clock answers what the driver costs on top, which is where
+Python's interpreter start-up and imports show up. The measured result is in the
+speed section of the [README](../README.md): parity on the kernel phases, and
+about 0.15 s of a 16 s run attributable to PyNEST.
+
+Single threaded is not an accident here. The Python reference does not take a
+thread count, and changing it would change which random stream each node draws
+from, so the three would no longer be running the same network.
+
 ## If something goes wrong
 
 **`missing <build>/nestkernel/libnestkernel.a`** — `NEST_BUILD` points at an

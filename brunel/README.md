@@ -66,11 +66,12 @@ Both C++ programs take `--threads=N` (default 1), `--seed=N` (default is NEST's
 own, 143202461) and `--quiet`. All three defaults reproduce the upstream
 example's behaviour exactly.
 
-## The two checks
+## The three checks
 
 ```sh
 brunel/check.sh      # do the three programs agree?
 brunel/scaling.sh    # what does thread count buy?
+brunel/parity.sh     # is C++ any cheaper than PyNEST?
 ```
 
 `check.sh` builds and runs all three and fails unless the Poisson drive rate
@@ -83,6 +84,15 @@ interspike intervals, the mean correlation between pairs of neurons and the
 population Fano factor, and compares the rate against a prediction with no free
 parameters. Run `python state_check.py --selftest` to see it check its own
 estimators against synthetic Poisson input.
+
+`parity.sh` times all three single threaded and reports NEST's own phase timers
+next to the wall clock of the whole process. The phases agree, because all three
+run the same `libnestkernel.a` over the same network; the wall clock shows
+PyNEST costing about 0.15 s more out of 16 s, which is interpreter start-up and
+imports. The numbers are in the speed section of the [top level
+README](../README.md). C++ is at parity and no faster, which is the honest
+answer: this model issues about a dozen calls into the kernel, so there is no
+interpreter overhead to recover.
 
 ## What it finds, and why it is worth saying
 
