@@ -48,10 +48,22 @@ g++ -fopenmp -o model model.o $(nest-config --kernel-libs)
 ## What has been verified
 
 * The patch applies cleanly to NEST 3.10.0 at `acca9704d` (`git apply --check`).
-* Nothing else yet. Building a patched copy of NEST and linking a program
-  against the resulting install prefix is in progress; this section will say
-  what happened either way. The copy is made outside the NEST checkout, which
-  this project does not modify.
+* A NEST built from a patched copy of that tree installs the three archives
+  into `<prefix>/lib/nest`, and `nest-config --kernel-libs` prints them in a
+  linker group followed by the external libraries.
+* `pd14/microcircuit.cpp`, compiled and linked against that install prefix
+  alone with no reference to any build directory, reproduces the eight spike
+  files the NEST team committed with the microcircuit example: 20,505 spikes,
+  identical. That is the whole claim of this patch demonstrated end to end, from
+  an installed NEST to a correct simulation.
+
+The copy was made outside the NEST checkout, which this project does not modify.
+
+One thing the patch does not solve, because it is not NEST's to solve: the link
+line names the external libraries at the paths CMake found them, so if NEST was
+configured against a GSL outside the system library path, the resulting binary
+needs that path at run time as well. Here GSL came from a conda prefix and the
+binary needed `LD_LIBRARY_PATH` set to it.
 
 ## The alternative the NEST team may prefer
 
