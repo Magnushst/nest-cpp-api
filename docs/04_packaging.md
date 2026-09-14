@@ -23,7 +23,7 @@ against the build directory.
 
 ## What the patch changes
 
-Five files, 39 added lines, no behaviour changed for any existing caller.
+Five files, 35 added lines, no behaviour changed for any existing caller.
 
 | File | Change |
 | --- | --- |
