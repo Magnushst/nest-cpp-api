@@ -10,18 +10,21 @@ upstream Python example.
 What it adds is the part PyNEST adds on the Python side and nobody has added on
 the C++ side.
 
-## Scope, and why it is this small
+## Scope, and how it grows
 
-The interface covers the Brunel network and nothing else. Every entry point
-exists because `brunel/brunel_alpha.cpp` needs it. That is about a dozen
-operations: bring the kernel up, set kernel status, create nodes with
-parameters, copy a synapse model, connect with `all_to_all` and with
-`fixed_indegree`, slice a population, concatenate two populations, simulate,
-read a scalar out of node status and out of model defaults.
+The interface covers what the models in this repository need, and nothing
+speculative. Today that is the Brunel network: about a dozen operations, namely
+bring the kernel up, set kernel status, create nodes with parameters, copy a
+synapse model, connect with `all_to_all` and with `fixed_indegree`, slice a
+population, concatenate two populations, simulate, and read a scalar out of node
+status and out of model defaults.
 
-An interface that covers one network completely and says so is more useful than a
-sketch of the whole API, because every line of it has been run. Things known to
-be missing are listed at the end.
+That is a deliberate rule rather than an accident of being early. An interface
+that covers its models completely is more useful than a sketch of the whole API,
+because every line of it has been run against a result that is checked. Each new
+model in a sibling directory extends the interface by exactly what it needs, and
+the check for that model pins the extension. The items already known to be
+needed next are listed at the end.
 
 ## The seven decisions, each answering an audit finding
 

@@ -35,8 +35,8 @@ using nestpp::numerics::e;
 /**
  * Lower branch of the Lambert W function, W_{-1}(x), for x in (-1/e, 0), by
  * Halley iteration. The Python example takes this from SciPy; NEST has no
- * Lambert W of its own. At the single argument used here it agrees with SciPy
- * to all 16 significant digits (-5.400341679701187).
+ * Lambert W of its own. At the single argument used here the result is bit
+ * identical to scipy.special.lambertw(x, k=-1): -5.4003416797011869.
  */
 double
 lambert_wm1( const double x )

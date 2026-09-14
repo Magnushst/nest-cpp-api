@@ -27,8 +27,7 @@ except ModuleNotFoundError:
     # The NEST build under test may ship with a Python that has no SciPy.
     # Fall back to the same Halley iteration the C++ programs use. For the one
     # argument this script evaluates, x = -exp(-1/40)/40, it agrees with
-    # scipy.special.lambertw(x, k=-1) to all 16 printed digits
-    # (-5.400341679701187).
+    # scipy.special.lambertw(x, k=-1) bit for bit (-5.4003416797011869).
     def LambertWm1(x):
         w = math.log(-x) - math.log(-math.log(-x))
         for _ in range(100):
