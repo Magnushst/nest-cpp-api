@@ -154,7 +154,7 @@ they are not the same run. This is why the default is one thread and why
 cd $(mktemp -d) && /path/to/nest-cpp-api/build/api_test
 ```
 
-62 checks over every entry point of `nest_api.h` against a running kernel,
+70 checks over every entry point of `nest_api.h` against a running kernel,
 including the failures a caller can provoke. It needs no data files and takes a
 second. It prints a line per failure and exits non-zero if there is one.
 

@@ -62,7 +62,7 @@ build.sh                     builds every directory that holds a .cpp
 | Path | What it is |
 | --- | --- |
 | `include/nest/nest_api.h` | The C++ interface. Header only, no build step. |
-| `tests/api_test.cpp` | 62 checks over every entry point, including the failures. |
+| `tests/api_test.cpp` | 70 checks over every entry point, including the failures. |
 | `packaging/install-kernel-library.patch` | Makes an installed NEST linkable. Verified end to end. |
 | `upstream/assemble.sh` | Builds the pull request branch and writes the patch series. |
 | `docs/01_state_of_the_kernel.md` | What the kernel API offers today, and what surprises a C++ caller. |
@@ -102,7 +102,7 @@ Verified, each by a check in this repository that can be re-run:
   with the PyNEST example: eight spike files, 20,505 spikes, produced by a
   different program on a different machine against an older kernel.
 * Every entry point of the interface is exercised by `tests/api_test.cpp`
-  against a running kernel: 62 checks, including the failures a caller can
+  against a running kernel: 70 checks, including the failures a caller can
   provoke.
 * The packaging patch makes an installed NEST linkable, demonstrated by
   building the microcircuit against an install prefix alone and getting those
@@ -160,9 +160,11 @@ catch:
 
 Written against the interface, the Brunel example is 161 lines against 271 for
 the same network written against the kernel API directly. The line count is the
-lesser half of it: three of the nine rows above are mistakes that compile
-cleanly and fail at run time, and two of them are the same problem, namely that
-`nest.h` is presented as the API header and is not complete.
+lesser half of it. Three of the nine rows are mistakes that compile cleanly and
+fail at run time, which is the category that costs a caller an afternoon. Two
+others are the same problem wearing different clothes: `nest.h` is presented as
+the API header and is not complete, so `operator+` and half the `Parameter`
+system have to be fetched from other kernel headers.
 
 ## NEST's own conventions are used throughout
 

@@ -1,6 +1,6 @@
-From 4277a0a1d103796bef9c96d9662344b29033ddd2 Mon Sep 17 00:00:00 2001
+From 3607251d1d5ca6bda2532d2874bcad1356223639 Mon Sep 17 00:00:00 2001
 From: Magnushst <magnus.henrik@hotmail.com>
-Date: Mon, 14 Sep 2026 18:38:55 +0200
+Date: Mon, 14 Sep 2026 18:46:56 +0200
 Subject: [PATCH 2/5] Add nest_api.h, a C++ interface to the kernel API
 
 nest.h declares the kernel API as free functions, and dictionary.h calls

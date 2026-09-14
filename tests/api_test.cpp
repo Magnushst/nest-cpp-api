@@ -164,6 +164,28 @@ main( int argc, char* argv[] )
       "conditional" );
     ok( not two.is_spatial(), "a constant is not spatial" );
 
+    close_to( ( three * 2.0 ).value(), 6.0, "multiplication by a plain number" );
+    close_to( ( three / 2.0 ).value(), 1.5, "division by a plain number" );
+    close_to( ( three - 2.0 ).value(), 1.0, "subtraction of a plain number" );
+
+    // The other distributions, checked by what they cannot produce rather than by
+    // their shape: ten draws say nothing about a mean.
+    const std::vector< double > uniform_draws = api::apply( api::random::uniform( -2.0, 5.0 ), neurons );
+    const std::vector< double > lognormal_draws = api::apply( api::random::lognormal( 0.0, 1.0 ), neurons );
+    const std::vector< double > exponential_draws = api::apply( api::random::exponential( 2.0 ), neurons );
+    bool uniform_in_range = true;
+    bool lognormal_positive = true;
+    bool exponential_positive = true;
+    for ( size_t i = 0; i < uniform_draws.size(); ++i )
+    {
+      uniform_in_range = uniform_in_range and uniform_draws[ i ] >= -2.0 and uniform_draws[ i ] < 5.0;
+      lognormal_positive = lognormal_positive and lognormal_draws[ i ] > 0.0;
+      exponential_positive = exponential_positive and exponential_draws[ i ] >= 0.0;
+    }
+    ok( uniform_in_range, "uniform draws lie in [min, max)" );
+    ok( lognormal_positive, "lognormal draws are positive" );
+    ok( exponential_positive, "exponential draws are not negative" );
+
     // A distribution, drawn per node. The bounds are what redraw guarantees; the
     // mean is not checked, because ten draws say nothing about it.
     const auto bounded = api::math::redraw( api::random::normal( 0.0, 10.0 ), -1.0, 1.0 );
@@ -243,6 +265,15 @@ main( int argc, char* argv[] )
     ok( recorder.get< long >( names::n_events ) > 0, "the network spiked and the recorder counted it" );
 
     ok( not api::print_nodes().empty(), "print_nodes produces something" );
+
+    // Nothing here loads a module, so the failure is what there is to check.
+    throws< nest::KernelException >(
+      [ & ] { api::install_module( "no_such_module" ); }, "loading a module that does not exist" );
+
+    // On one rank this is a no-op, and on more it is a barrier. Either way it
+    // must return rather than throw.
+    api::synchronize();
+    ok( true, "synchronize returns" );
 
     // Two calls given the same Params must not interfere: Dictionary is a shared
     // pointer, and the kernel marks entries as accessed while reading them.

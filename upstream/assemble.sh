@@ -136,7 +136,7 @@ does not cover yet."
 # Nothing in the generated tree may still point at this repository.
 echo "== checking for stale references"
 stale=0
-for pattern in "nest_cpp" "pd14/" "brunel/check.sh" "docs/0" "build.sh" "this repository" "reference/"; do
+for pattern in "nest_cpp" "NEST_CPP" "pd14/" "brunel/check.sh" "docs/0" "build.sh" "this repository" "reference/"; do
   if grep -rn --fixed-strings "${pattern}" \
       "${TREE}/nestkernel/nest_api.h" "${TREE}/examples/cpp" "${TREE}/testsuite/cpptests/nest_api_test.cpp"; then
     echo "   stale reference: ${pattern}" >&2

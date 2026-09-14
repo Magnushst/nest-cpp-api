@@ -43,15 +43,23 @@ if ( NEST_KERNEL_LIBS STREQUAL "" )
     "that installs the kernel libraries, and cannot be linked against." )
 endif ()
 
-separate_arguments( NEST_INCLUDES NATIVE_COMMAND "${NEST_INCLUDES}" )
 separate_arguments( NEST_KERNEL_LIBS NATIVE_COMMAND "${NEST_KERNEL_LIBS}" )
 separate_arguments( NEST_CFLAGS NATIVE_COMMAND "${NEST_CFLAGS}" )
+
+# nest-config prints include paths as -I flags; target_include_directories wants
+# the bare directories.
+separate_arguments( NEST_INCLUDE_FLAGS NATIVE_COMMAND "${NEST_INCLUDES}" )
+set( NEST_INCLUDE_DIRS "" )
+foreach ( flag IN LISTS NEST_INCLUDE_FLAGS )
+  string( REGEX REPLACE "^-I" "" directory "${flag}" )
+  list( APPEND NEST_INCLUDE_DIRS "${directory}" )
+endforeach ()
 
 find_package( OpenMP REQUIRED )
 
 foreach ( example brunel_alpha microcircuit )
   add_executable( ${example} ${example}.cpp )
   target_compile_options( ${example} PRIVATE ${NEST_CFLAGS} )
-  target_include_directories( ${example} PRIVATE ${NEST_INCLUDES} ${CMAKE_CURRENT_SOURCE_DIR} )
+  target_include_directories( ${example} PRIVATE ${NEST_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR} )
   target_link_libraries( ${example} ${NEST_KERNEL_LIBS} OpenMP::OpenMP_CXX )
 endforeach ()

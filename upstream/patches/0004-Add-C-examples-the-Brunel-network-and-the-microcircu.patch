@@ -1,6 +1,6 @@
-From af9bdd04c9f99c4c88153aafde22902d5543cc2a Mon Sep 17 00:00:00 2001
+From 31cebd81e95e58e2238990693fd604ae0cd44ad8 Mon Sep 17 00:00:00 2001
 From: Magnushst <magnus.henrik@hotmail.com>
-Date: Mon, 14 Sep 2026 18:38:55 +0200
+Date: Mon, 14 Sep 2026 18:46:56 +0200
 Subject: [PATCH 4/5] Add C++ examples: the Brunel network and the microcircuit
 
 Two of NEST's own PyNEST examples, written in C++ against nest_api.h and
@@ -9,12 +9,12 @@ identical to the Python they were translated from; the microcircuit reproduces
 the reference data committed with the PyNEST version. Until now there was no C++
 example anywhere in the tree.
 ---
- examples/cpp/CMakeLists.txt        |  57 +++++
+ examples/cpp/CMakeLists.txt        |  65 +++++
  examples/cpp/README.md             |  54 ++++
  examples/cpp/brunel_alpha.cpp      | 254 +++++++++++++++++++
  examples/cpp/microcircuit.cpp      | 392 +++++++++++++++++++++++++++++
  examples/cpp/microcircuit_params.h | 236 +++++++++++++++++
- 5 files changed, 993 insertions(+)
+ 5 files changed, 1001 insertions(+)
  create mode 100644 examples/cpp/CMakeLists.txt
  create mode 100644 examples/cpp/README.md
  create mode 100644 examples/cpp/brunel_alpha.cpp
@@ -23,10 +23,10 @@ example anywhere in the tree.
 
 diff --git a/examples/cpp/CMakeLists.txt b/examples/cpp/CMakeLists.txt
 new file mode 100644
-index 000000000..ec88ad3dd
+index 000000000..6fedc0f60
 --- /dev/null
 +++ b/examples/cpp/CMakeLists.txt
-@@ -0,0 +1,57 @@
+@@ -0,0 +1,65 @@
 +# examples/cpp/CMakeLists.txt
 +#
 +# This file is part of NEST.
@@ -72,16 +72,24 @@ index 000000000..ec88ad3dd
 +    "that installs the kernel libraries, and cannot be linked against." )
 +endif ()
 +
-+separate_arguments( NEST_INCLUDES NATIVE_COMMAND "${NEST_INCLUDES}" )
 +separate_arguments( NEST_KERNEL_LIBS NATIVE_COMMAND "${NEST_KERNEL_LIBS}" )
 +separate_arguments( NEST_CFLAGS NATIVE_COMMAND "${NEST_CFLAGS}" )
++
++# nest-config prints include paths as -I flags; target_include_directories wants
++# the bare directories.
++separate_arguments( NEST_INCLUDE_FLAGS NATIVE_COMMAND "${NEST_INCLUDES}" )
++set( NEST_INCLUDE_DIRS "" )
++foreach ( flag IN LISTS NEST_INCLUDE_FLAGS )
++  string( REGEX REPLACE "^-I" "" directory "${flag}" )
++  list( APPEND NEST_INCLUDE_DIRS "${directory}" )
++endforeach ()
 +
 +find_package( OpenMP REQUIRED )
 +
 +foreach ( example brunel_alpha microcircuit )
 +  add_executable( ${example} ${example}.cpp )
 +  target_compile_options( ${example} PRIVATE ${NEST_CFLAGS} )
-+  target_include_directories( ${example} PRIVATE ${NEST_INCLUDES} ${CMAKE_CURRENT_SOURCE_DIR} )
++  target_include_directories( ${example} PRIVATE ${NEST_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR} )
 +  target_link_libraries( ${example} ${NEST_KERNEL_LIBS} OpenMP::OpenMP_CXX )
 +endforeach ()
 diff --git a/examples/cpp/README.md b/examples/cpp/README.md
@@ -804,7 +812,7 @@ index 000000000..c2eb9753c
 +}
 diff --git a/examples/cpp/microcircuit_params.h b/examples/cpp/microcircuit_params.h
 new file mode 100644
-index 000000000..ff65fa60d
+index 000000000..483091750
 --- /dev/null
 +++ b/examples/cpp/microcircuit_params.h
 @@ -0,0 +1,236 @@
@@ -853,8 +861,8 @@ index 000000000..ff65fa60d
 + *  compared against the Python reference without a kernel.
 + */
 +
-+#ifndef NEST_CPP_PD14_MICROCIRCUIT_PARAMS_HPP
-+#define NEST_CPP_PD14_MICROCIRCUIT_PARAMS_HPP
++#ifndef MICROCIRCUIT_PARAMS_H
++#define MICROCIRCUIT_PARAMS_H
 +
 +#include <array>
 +#include <cmath>
@@ -1043,7 +1051,7 @@ index 000000000..ff65fa60d
 +
 +}  // namespace pd14
 +
-+#endif /* NEST_CPP_PD14_MICROCIRCUIT_PARAMS_HPP */
++#endif /* MICROCIRCUIT_PARAMS_H */
 -- 
 2.55.0
 

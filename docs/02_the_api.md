@@ -33,10 +33,10 @@ vector-valued status, module loading and the MPI rank queries.
 
 ## The decisions, each answering an audit finding
 
-Seven decisions against the seven surprises in the audit. The findings are
-numbered as in [01_state_of_the_kernel.md](01_state_of_the_kernel.md); the last
-decision answers two of them at once, which is why the summary table in the
-[README](../README.md) has eight rows against seven headings here.
+Eight decisions against the eight surprises in the audit, numbered as in
+[01_state_of_the_kernel.md](01_state_of_the_kernel.md). The summary table in the
+[README](../README.md) has nine rows because decision 6 answers two findings and
+is listed once here and twice there.
 
 ### 1. `Kernel` is a scoped object (finding 7)
 
@@ -206,7 +206,7 @@ work is all inside the kernel. See the table in the README.
 
 ## Tested
 
-`tests/api_test.cpp` runs 62 checks against a running kernel, covering every
+`tests/api_test.cpp` runs 70 checks against a running kernel, covering every
 entry point in the header and the failures a caller can provoke: a negative
 slice index, a scalar read of a many-node collection, an unknown key, a wrong
 type, a per-node vector of the wrong length, and `one_to_one` between

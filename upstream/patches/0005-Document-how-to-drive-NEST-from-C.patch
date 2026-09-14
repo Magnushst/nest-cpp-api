@@ -1,6 +1,6 @@
-From 97697b4066dd1e738bfe29d9e527549c747e4d32 Mon Sep 17 00:00:00 2001
+From 711be76e34ae02700dcab647288a44401ec168f8 Mon Sep 17 00:00:00 2001
 From: Magnushst <magnus.henrik@hotmail.com>
-Date: Mon, 14 Sep 2026 18:38:55 +0200
+Date: Mon, 14 Sep 2026 18:46:56 +0200
 Subject: [PATCH 5/5] Document how to drive NEST from C++
 
 A page covering what nest_api.h offers, how to build against an installed NEST

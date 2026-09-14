@@ -39,6 +39,7 @@ LICENCE = """/*
 # assemble.sh, which fails rather than shipping a stale path.
 REPLACEMENTS = [
     ("nest_cpp/nest.hpp", "nest_api.h"),
+    ("NEST_CPP_PD14_MICROCIRCUIT_PARAMS_HPP", "MICROCIRCUIT_PARAMS_H"),
     ("microcircuit_params.hpp", "microcircuit_params.h"),
     ("docs/02_the_api.md", "doc/htmldoc/developer_space/cpp_api.rst"),
     (

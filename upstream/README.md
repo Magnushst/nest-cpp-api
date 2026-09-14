@@ -14,6 +14,21 @@ NEST's licence header, and every reference to this repository's own paths is
 rewritten to the NEST path it corresponds to. A guard refuses to write the
 patches if any reference is left over.
 
+## What it applies to
+
+The patches are generated against the NEST checkout the script clones, which
+here is NEST 3.10.0 at `acca9704d`. `nest/master` has moved on since: the
+Potjans and Diesmann example, which case study 2 is a translation of, was taken
+out of the tree in August 2025. Whoever opens the pull request should clone the
+real thing and rebase:
+
+```sh
+NEST_SOURCE=https://github.com/nest/nest-simulator upstream/assemble.sh
+```
+
+Only the first commit touches a file that already exists, so a rebase is
+unlikely to be eventful, but it has not been done here.
+
 ## The five commits
 
 | # | What it does | Why it is separate |
@@ -57,7 +72,10 @@ a vector of variants. Changing them at source would break
 known and bounded. See `docs/01_state_of_the_kernel.md`.
 
 **Is it tested?** `run_nest_api_test` covers every entry point against a running
-kernel, including the failures a caller can provoke. Beyond that, the two
+kernel, including the failures a caller can provoke. The branch has been built,
+installed and run: the test passes from the installed binary, the examples build
+through their own CMakeLists against the install prefix, and the microcircuit
+example reproduces the PyNEST version's reference data from there. Beyond that, the two
 examples reproduce their PyNEST counterparts spike for spike, and the
 microcircuit reproduces the reference data committed with the PyNEST version.
 
