@@ -27,7 +27,11 @@ NEST_BUILD=/path/to/nest/build ./build.sh
 
 The script defaults `NEST_BUILD` to `/home/magnus/Projects/nest/nest_master/build`
 and derives `NEST_CONFIG` from it; either can be overridden in the environment.
-It produces two programs in `build/`:
+
+Each model lives in its own directory and every `.cpp` in it becomes a program.
+`./build.sh` with no arguments builds them all; `./build.sh brunel` builds one.
+Adding a model means adding a directory, not editing the script. Today that
+gives two programs in `build/`:
 
 | Program | Source |
 | --- | --- |
@@ -92,11 +96,20 @@ It needs a PyNEST matching the same build. It defaults to
 `<build>/install/lib/python3.14/site-packages` and `/usr/bin/python3.14`;
 override with `PYNEST` and `PYTHON`. The Python reference does not need SciPy:
 it falls back to the same Halley iteration the C++ uses, which agrees with
-`scipy.special.lambertw` to all 16 significant digits at the one argument it
-evaluates.
+`scipy.special.lambertw` bit for bit at the one argument it evaluates.
 
-Run this after every change. It is the only thing standing between a tidy up and
-a silently different simulation.
+It then runs `brunel/state_check.py`, which asks a different question: not
+whether the three programs agree, but whether the network they build behaves as
+the theory says. That check measures the firing rate, the interspike interval
+irregularity, the correlation between neurons and the population Fano factor
+from the spike files, and compares the rate against a closed form prediction
+derived from the parameters alone. It validates its own estimators against
+synthetic Poisson input before trusting them on the simulation. See the network
+state section of the [README](../README.md) for what it finds and why it
+matters.
+
+Run all of this after every change. It is the only thing standing between a tidy
+up and a silently different simulation.
 
 ## Measure thread scaling
 
