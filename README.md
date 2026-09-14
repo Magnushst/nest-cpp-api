@@ -1,11 +1,14 @@
 # A C++ API for NEST, worked out on the Brunel network
 
 NEST is driven from Python. The NEST team would like it to be drivable from C++
-as well. This repository is that interface, built by taking one small,
-well known network and writing it three ways: in the upstream Python, in C++
-against the kernel as it stands today, and in C++ against a proposed interface.
-All three are run and compared, so every claim below is a measurement rather
-than a design opinion.
+as well. This repository is that interface, built by taking one small, well known
+network and writing it three ways: in the upstream Python, in C++ against the
+kernel as it stands today, and in C++ against the interface proposed here. All
+three are run and compared, so every claim below is a measurement rather than a
+design opinion.
+
+Brunel (2000) is the first model. More models will sit beside it in the same
+layout, and the interface grows to cover what they need.
 
 Nothing here modifies NEST. The NEST checkout is read only from this project.
 
@@ -36,17 +39,27 @@ prefix. Making an installed NEST linkable is a packaging change for the NEST
 team, and it is the single most valuable thing in this repository for them.
 See [docs/01_state_of_the_kernel.md](docs/01_state_of_the_kernel.md).
 
-## What is here
+## Layout
+
+```
+include/nest_cpp/nest.hpp    the interface, header only, namespace nestpp
+brunel/                      everything specific to the Brunel network
+docs/                        the audit, the interface, how to build and run
+build.sh                     builds every model directory
+```
 
 | Path | What it is |
 | --- | --- |
+| `include/nest_cpp/nest.hpp` | The C++ interface. Header only, no build step. |
+| `brunel/brunel_alpha.cpp` | The Brunel network written against that interface. |
+| `brunel/brunel_alpha_raw.cpp` | The same network against `nestkernel/nest.h` as it is today. The control. |
 | `brunel/brunel_alpha_ref.py` | The upstream `brunel_alpha_nest.py`, headless. The baseline. |
-| `brunel/brunel_alpha_raw.cpp` | The same network in C++ against `nestkernel/nest.h` as it is today. |
-| `include/nest_cpp/nest.hpp` | The proposed C++ interface, header only. |
-| `brunel/brunel_alpha.cpp` | The same network again, against that interface. |
 | `brunel/check.sh` | Builds and runs all three and fails on any difference. |
+| `brunel/state_check.py` | Asks whether the network behaves as the theory says. |
 | `brunel/scaling.sh` | Sweeps thread count and reports NEST's own timers. |
-| `build.sh` | Builds both C++ programs against a NEST build tree. |
+
+A second model is a new directory beside `brunel/`. `build.sh` picks it up with
+no change.
 
 ## The evidence that the translation is right
 
@@ -63,12 +76,48 @@ Identical spikes is a stronger statement than "the results look similar". The
 three programs build the same network in the same order, so they draw the same
 random numbers in the same sequence, so the simulation is the same simulation.
 
-## What the nest_cpp interface changes
+## The evidence that the network is right
 
-The proposed interface adds no simulation behaviour. Every call forwards to the
-kernel. What it adds is the part PyNEST adds on the Python side and nobody has
-added on the C++ side. Each item below exists because writing Brunel without it
-hurt, and three of them are run time failures that the compiler does not catch:
+Matching Python proves the translation. It says nothing about whether the
+network does what the theory says it should, so `brunel/state_check.py` asks that
+separately, from the spike files alone, and checks its own estimators against
+Poisson input first.
+
+| Measured | Excitatory | Inhibitory | Poisson would give |
+| --- | --- | --- | --- |
+| firing rate | 28.54 Hz | 28.62 Hz | |
+| CV of interspike intervals | 0.191 | 0.188 | 1 |
+| mean pairwise correlation | 0.0070 | 0.0103 | 0 |
+| population Fano factor | 1.285 | 1.491 | 1 |
+
+Against that, a prediction from the parameters with no free parameters at all.
+The mean input relative to threshold follows from the connectivity and the
+drive,
+
+    mu / theta = eta - (g * gamma - 1) * nu / nu_thr,   gamma = C_I / C_E,
+
+and if that exceeds 1 the neuron is carried over threshold by the mean input
+alone and fires at the rate a noiseless leaky integrate and fire neuron would,
+`nu = 1 / (t_ref + tau_m * ln(mu / (mu - theta)))`. Solving the two together
+gives **27.68 Hz at mu = 1.22 theta**, against 28.54 Hz measured: **3.1% error**.
+
+So the network is **asynchronous but regular**, not the asynchronous irregular
+state usually quoted for Brunel networks. Neurons are nearly independent
+(correlation 0.007) yet fire nearly periodically (CV 0.19), because at `g = 5`
+and `eta = 2` the mean input sits a fifth above threshold. The close agreement
+between the closed form rate and the simulation is the confirmation.
+
+This is a property of the upstream example's parameters, not of the translation:
+the Python original produces the identical spikes. It is recorded here because a
+reference implementation should say what state it is in rather than leave the
+reader to assume the familiar one.
+
+## What the interface changes
+
+The interface adds no simulation behaviour. Every call forwards to the kernel.
+What it adds is the part PyNEST adds on the Python side and nobody has added on
+the C++ side. Each row below exists because writing Brunel without it hurt, and
+three of them are run time failures that the compiler does not catch:
 
 | Kernel API today | In `nest_cpp` |
 | --- | --- |
@@ -106,8 +155,9 @@ comparison is between two interfaces rather than between good and bad style:
 
 The one thing not taken from NEST is the Lambert W function used to calibrate
 the synaptic weights, because NEST does not have one and does not require GSL.
-It is solved here by Halley iteration, and agrees with SciPy to all 16
-significant digits at the single argument the model evaluates.
+It is solved here by Halley iteration, and returns bit identical values to
+`scipy.special.lambertw` at the argument the model evaluates
+(`-5.4003416797011869`, residual 3e-18).
 
 ## Speed
 
@@ -150,7 +200,7 @@ brunel/scaling.sh
 `NEST_BUILD` must be a configured and built NEST source tree, not an install
 prefix, for the reason at the top of this page.
 
-## Why Brunel, and what comes next
+## Why Brunel first, and what comes next
 
 Brunel (2000) is the smallest network that is still a real network: two
 populations, one Poisson drive, two recorders, random fixed indegree
@@ -160,8 +210,9 @@ exercises exactly the surface a first C++ API has to get right.
 The Potjans and Diesmann (2014) microcircuit is the natural second target. It
 has eight populations, an eight by eight connectivity matrix, per population
 drive and recorders, and scaling logic, so it needs several times this API
-surface. It is the right test of whether the interface generalises, and it is not
-the right place to start.
+surface, including the `Parameter` system for randomised initial states. It is
+the right test of whether the interface generalises, and it is not the right
+place to start.
 
 ## Version
 
