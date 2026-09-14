@@ -57,7 +57,15 @@ g++ -fopenmp -o model model.o $(nest-config --kernel-libs)
   identical. That is the whole claim of this patch demonstrated end to end, from
   an installed NEST to a correct simulation.
 
-The copy was made outside the NEST checkout, which this project does not modify.
+The same was then done from the assembled pull request branch rather than from
+the patch alone: it builds, installs `nest_api.h` beside the kernel headers and
+the three archives beside them, its `run_nest_api_test` passes from the
+installed binary, and `examples/cpp` builds through its own CMakeLists against
+the install prefix and reproduces those reference spikes. See
+[../upstream/README.md](../upstream/README.md).
+
+Both copies were made outside the NEST checkout, which this project does not
+modify.
 
 One thing the patch does not solve, because it is not NEST's to solve: the link
 line names the external libraries at the paths CMake found them, so if NEST was
