@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Measure how the Brunel run scales with OpenMP threads.
 #
-# This measures NEST, not the draft: the driver issues the same dozen calls at
+# This measures NEST, not the interface: the driver issues the same dozen calls at
 # every thread count and all the work happens inside libnestkernel. The only
 # lever the driver actually holds is local_num_threads, so that is what this
 # varies.
@@ -9,10 +9,10 @@
 # Note that thread count changes which virtual process owns which node and which
 # random number stream it draws from, so results at more than one thread are
 # statistically equivalent to the one-thread run but are NOT the same spikes.
-# validation/check.sh pins the one-thread case; this script does not check
+# brunel/check.sh pins the one-thread case; this script does not check
 # identity.
 #
-# Usage:  validation/scaling.sh [scratch-dir]
+# Usage:  brunel/scaling.sh [scratch-dir]
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

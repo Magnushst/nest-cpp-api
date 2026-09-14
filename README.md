@@ -1,7 +1,7 @@
-# A C++ API for NEST, drafted against the Brunel network
+# A C++ API for NEST, worked out on the Brunel network
 
 NEST is driven from Python. The NEST team would like it to be drivable from C++
-as well. This repository is draft work towards that, built by taking one small,
+as well. This repository is that interface, built by taking one small,
 well known network and writing it three ways: in the upstream Python, in C++
 against the kernel as it stands today, and in C++ against a proposed interface.
 All three are run and compared, so every claim below is a measurement rather
@@ -40,17 +40,17 @@ See [docs/01_state_of_the_kernel.md](docs/01_state_of_the_kernel.md).
 
 | Path | What it is |
 | --- | --- |
-| `validation/brunel_alpha_ref.py` | The upstream `brunel_alpha_nest.py`, headless. The baseline. |
-| `reference/brunel_alpha_raw.cpp` | The same network in C++ against `nestkernel/nest.h` as it is today. |
-| `draft/include/nest_cpp/nest.hpp` | The proposed C++ interface, header only. |
-| `draft/examples/brunel_alpha.cpp` | The same network again, against that interface. |
-| `validation/check.sh` | Builds and runs all three and fails on any difference. |
-| `validation/scaling.sh` | Sweeps thread count and reports NEST's own timers. |
+| `brunel/brunel_alpha_ref.py` | The upstream `brunel_alpha_nest.py`, headless. The baseline. |
+| `brunel/brunel_alpha_raw.cpp` | The same network in C++ against `nestkernel/nest.h` as it is today. |
+| `include/nest_cpp/nest.hpp` | The proposed C++ interface, header only. |
+| `brunel/brunel_alpha.cpp` | The same network again, against that interface. |
+| `brunel/check.sh` | Builds and runs all three and fails on any difference. |
+| `brunel/scaling.sh` | Sweeps thread count and reports NEST's own timers. |
 | `build.sh` | Builds both C++ programs against a NEST build tree. |
 
 ## The evidence that the translation is right
 
-`validation/check.sh` passes. It checks three things:
+`brunel/check.sh` passes. It checks three things:
 
 1. `p_rate`, the Poisson drive rate that fixes every spike, is
    `17789.007714721884` in all three, to all 17 printed digits.
@@ -63,14 +63,14 @@ Identical spikes is a stronger statement than "the results look similar". The
 three programs build the same network in the same order, so they draw the same
 random numbers in the same sequence, so the simulation is the same simulation.
 
-## What the drafted interface changes
+## What the nest_cpp interface changes
 
 The proposed interface adds no simulation behaviour. Every call forwards to the
 kernel. What it adds is the part PyNEST adds on the Python side and nobody has
 added on the C++ side. Each item below exists because writing Brunel without it
 hurt, and three of them are run time failures that the compiler does not catch:
 
-| Kernel API today | In the draft |
+| Kernel API today | In `nest_cpp` |
 | --- | --- |
 | `init_nest` and `shutdown_nest` called by hand; shutdown must be reached on every path | `nestpp::Kernel` is a scoped object |
 | `create` takes no parameters, so every population is created and then configured | `create(model, n, params)` |
@@ -96,7 +96,7 @@ comparison is between two interfaces rather than between good and bad style:
   models use. Substituting it for `std::exp(1.0)` left `p_rate` unchanged in the
   17th digit and the spike files byte identical, which is how we know it was a
   safe swap and not a silent perturbation.
-* **Failures are NEST exceptions.** The drafted header throws
+* **Failures are NEST exceptions.** The `nest_cpp` header throws
   `nest::BadParameter`, `nest::TypeMismatch`, `nest::DimensionMismatch` and
   `nest::KeyError`, so a caller catches one hierarchy.
 * **Timing comes from NEST's own stopwatches.** The programs read
@@ -114,7 +114,7 @@ significant digits at the single argument the model evaluates.
 All the work is inside `libnestkernel.a`. The driver issues about a dozen calls
 and then waits, so the driver's own compiler flags are irrelevant to runtime.
 The one lever the driver actually holds is the thread count, and it is worth
-having: `validation/scaling.sh`, on six performance cores of an Intel Core Ultra
+having: `brunel/scaling.sh`, on six performance cores of an Intel Core Ultra
 7 155H under `taskset -c 0,1,3,6,8,10`, three repeats, median of NEST's own
 timers:
 
@@ -143,8 +143,8 @@ See [docs/03_build_and_run.md](docs/03_build_and_run.md). In short:
 
 ```sh
 NEST_BUILD=/path/to/nest/build ./build.sh
-validation/check.sh
-validation/scaling.sh
+brunel/check.sh
+brunel/scaling.sh
 ```
 
 `NEST_BUILD` must be a configured and built NEST source tree, not an install
@@ -160,7 +160,7 @@ exercises exactly the surface a first C++ API has to get right.
 The Potjans and Diesmann (2014) microcircuit is the natural second target. It
 has eight populations, an eight by eight connectivity matrix, per population
 drive and recorders, and scaling logic, so it needs several times this API
-surface. It is the right test of whether the draft generalises, and it is not
+surface. It is the right test of whether the interface generalises, and it is not
 the right place to start.
 
 ## Version

@@ -2,7 +2,7 @@
 """
 Independent scientific check on the network state, from the spike files alone.
 
-Matching the Python reference byte for byte (validation/check.sh) proves the C++
+Matching the Python reference byte for byte (brunel/check.sh) proves the C++
 programs build the same network. It says nothing about whether that network
 behaves as the theory says it should. This script asks that separately, and it
 answers it two ways that do not depend on each other:

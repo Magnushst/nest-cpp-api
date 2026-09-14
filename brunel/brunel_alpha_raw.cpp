@@ -5,12 +5,12 @@
  *  C++ API exactly as that API exists today in `nestkernel/nest.h`.
  *
  *  This file is deliberately unhelped: nothing is wrapped, shortened or made
- *  safer. It is the control against which the drafted C++ interface in ../draft
- *  is compared, and it is the evidence that the kernel API can be driven from an
- *  ordinary C++ program. It does follow NEST's own conventions, so that the
- *  comparison is between two interfaces and not between good and bad style:
- *  dictionary keys come from `nest::names`, the constant e comes from
- *  `numerics`, and failures are NEST exceptions.
+ *  safer. It is the control against which the nest_cpp interface in
+ *  include/nest_cpp/nest.hpp is compared, and it is the evidence that the kernel
+ *  API can be driven from an ordinary C++ program. It follows NEST's own
+ *  conventions, so that the comparison is between two interfaces and not
+ *  between good and bad style: dictionary keys come from `nest::names`, the
+ *  constant e comes from `numerics`, and failures are NEST exceptions.
  *
  *  It is a translation of pynest/examples/brunel_alpha_nest.py from NEST 3.10.0
  *  (commit acca9704d). Every model parameter is taken from that file.

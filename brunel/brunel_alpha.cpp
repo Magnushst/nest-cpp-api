@@ -1,14 +1,14 @@
 /*
  *  brunel_alpha.cpp
  *
- *  The Brunel (2000) balanced random network, written against the drafted C++
+ *  The Brunel (2000) balanced random network, written against the C++
  *  interface in nest_cpp/nest.hpp.
  *
- *  Compare with ../../reference/brunel_alpha_raw.cpp, which is the same network
+ *  Compare with brunel_alpha_raw.cpp, which is the same network
  *  written against the kernel API directly, and with
- *  ../../validation/brunel_alpha_ref.py, which is the upstream Python example.
+ *  brunel_alpha_ref.py, which is the upstream Python example.
  *  All three build the same network in the same order, so they draw the same
- *  random numbers and must produce the same spikes; validation/check.sh enforces
+ *  random numbers and must produce the same spikes; brunel/check.sh enforces
  *  that.
  *
  *  Options (all default to the upstream example's behaviour):
@@ -221,7 +221,7 @@ main( int argc, char* argv[] )
   const double t_connect = nestpp::get< double >( kernel_final, names::time_construction_connect );
   const double t_simulate = nestpp::get< double >( kernel_final, names::time_simulate );
 
-  std::printf( "Brunel network simulation (C++, drafted interface)\n" );
+  std::printf( "Brunel network simulation (C++, nest_cpp interface)\n" );
   std::printf( "Number of neurons : %ld\n", NE + NI );
   std::printf( "Number of synapses: %ld\n", num_synapses );
   std::printf( "Excitatory events : %ld\n", events_ex );

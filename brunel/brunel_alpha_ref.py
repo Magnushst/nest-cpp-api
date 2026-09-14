@@ -4,10 +4,10 @@ Headless reference run of the Brunel network.
 
 This is pynest/examples/brunel_alpha_nest.py from NEST 3.10.0 with the
 plotting and the wall-clock reporting removed, so that its spike counts can be
-compared against ../reference/brunel_alpha_raw.cpp. Nothing that touches the
+compared against brunel_alpha_raw.cpp and brunel_alpha.cpp. Nothing that touches the
 network or the random number streams has been changed.
 
-Run it against the same NEST build the C++ drafts are linked to:
+Run it against the same NEST build the C++ programs are linked to:
 
     PYTHONPATH=<prefix>/lib/pythonX.Y/site-packages python brunel_alpha_ref.py
 """
@@ -25,7 +25,7 @@ try:
 
 except ModuleNotFoundError:
     # The NEST build under test may ship with a Python that has no SciPy.
-    # Fall back to the same Halley iteration the C++ drafts use. For the one
+    # Fall back to the same Halley iteration the C++ programs use. For the one
     # argument this script evaluates, x = -exp(-1/40)/40, it agrees with
     # scipy.special.lambertw(x, k=-1) to all 16 printed digits
     # (-5.400341679701187).

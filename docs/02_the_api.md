@@ -1,10 +1,10 @@
-# The drafted C++ interface
+# The nest_cpp interface
 
-`draft/include/nest_cpp/nest.hpp` is a header only layer over
+`include/nest_cpp/nest.hpp` is a header only layer over
 `nestkernel/nest.h`, in namespace `nestpp`. It adds no simulation behaviour:
 every call forwards to the kernel, the network is built in the same order, and
 the same random numbers are drawn. The proof of that is that
-`draft/examples/brunel_alpha.cpp` writes spike files byte identical to the
+`brunel/brunel_alpha.cpp` writes spike files byte identical to the
 upstream Python example.
 
 What it adds is the part PyNEST adds on the Python side and nobody has added on
@@ -13,13 +13,13 @@ the C++ side.
 ## Scope, and why it is this small
 
 The interface covers the Brunel network and nothing else. Every entry point
-exists because `draft/examples/brunel_alpha.cpp` needs it. That is about a dozen
+exists because `brunel/brunel_alpha.cpp` needs it. That is about a dozen
 operations: bring the kernel up, set kernel status, create nodes with
 parameters, copy a synapse model, connect with `all_to_all` and with
 `fixed_indegree`, slice a population, concatenate two populations, simulate,
 read a scalar out of node status and out of model defaults.
 
-A draft that covers one network completely and says so is more useful than a
+An interface that covers one network completely and says so is more useful than a
 sketch of the whole API, because every line of it has been run. Things known to
 be missing are listed at the end.
 
@@ -141,7 +141,7 @@ work is all inside the kernel. See the table in the README.
 * **The `Parameter` system.** `nest::create_parameter` builds distributions that
   can be assigned to node parameters, which is how randomised initial states and
   distance dependent weights are written. Brunel does not use it, so it is not
-  drafted. It is the first thing to add, because the Potjans and Diesmann
+  covered. It is the first thing to add, because the Potjans and Diesmann
   microcircuit needs it.
 * **`prepare` / `run` / `cleanup`.** Partial simulation, needed for anything
   that inspects or changes the network mid run.

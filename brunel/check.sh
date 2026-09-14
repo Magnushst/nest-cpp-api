@@ -6,7 +6,7 @@
 # is a failure: all three build the same network in the same order and therefore
 # consume the same random numbers.
 #
-# Usage:  validation/check.sh [scratch-dir]
+# Usage:  brunel/check.sh [scratch-dir]
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -35,7 +35,7 @@ run() {
 
 run raw "${HERE}/build/brunel_alpha_raw"
 run hpp "${HERE}/build/brunel_alpha"
-PYTHONPATH="${PYNEST}" run py "${PYTHON}" "${HERE}/validation/brunel_alpha_ref.py"
+PYTHONPATH="${PYNEST}" run py "${PYTHON}" "${HERE}/brunel/brunel_alpha_ref.py"
 
 status=0
 
@@ -74,8 +74,8 @@ echo "== network state"
 # says nothing about whether the network behaves as the theory says. state_check
 # asks that separately, from the spikes alone, and checks its own estimators
 # against Poisson input first.
-"${PYTHON}" "${HERE}/validation/state_check.py" --selftest | sed 's/^/   /' || status=1
-"${PYTHON}" "${HERE}/validation/state_check.py" \
+"${PYTHON}" "${HERE}/brunel/state_check.py" --selftest | sed 's/^/   /' || status=1
+"${PYTHON}" "${HERE}/brunel/state_check.py" \
   "${WORK}"/brunel-hpp-ex-*.dat "${WORK}"/brunel-hpp-in-*.dat | sed 's/^/   /' || status=1
 
 echo

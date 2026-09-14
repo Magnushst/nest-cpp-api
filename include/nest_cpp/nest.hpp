@@ -1,7 +1,7 @@
 /*
  *  nest_cpp/nest.hpp
  *
- *  A drafted user-facing C++ interface to the NEST simulation kernel.
+ *  A user-facing C++ interface to the NEST simulation kernel.
  *
  *  This is a header-only layer over `nestkernel/nest.h`. It adds no simulation
  *  behaviour of its own: every call forwards to the kernel API, and the network
@@ -12,13 +12,13 @@
  *  results that come back as the type you asked for.
  *
  *  Scope is deliberately the Brunel network and nothing else. Every entry point
- *  here exists because ../examples/brunel_alpha.cpp needs it. See
- *  ../../docs/02_design.md for what is missing and why that is the right size
- *  for a draft.
+ *  here exists because brunel/brunel_alpha.cpp needs it. See docs/02_the_api.md
+ *  for what is missing and why that is the right size. More models are being
+ *  added beside it, and the interface grows with them.
  *
  *  This header is not part of NEST and does not modify NEST.
  *
- *  Requires C++20. Link against a NEST build tree; see ../../build.sh.
+ *  Requires C++20. Link against a NEST build tree; see build.sh.
  */
 
 #ifndef NEST_CPP_NEST_HPP

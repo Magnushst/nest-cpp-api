@@ -152,6 +152,6 @@ descending order of how hard they are for someone outside the NEST team to fix:
    to `nestkernel/CMakeLists.txt` and `nest-config`, and only the NEST team can
    make it. Everything in this repository links against a build tree instead.
 2. **Ergonomics and safety.** The seven surprises above. This is what
-   [02_design.md](02_design.md) drafts.
+   [02_the_api.md](02_the_api.md) sets out.
 3. **An example and documentation.** There is currently neither. This repository
    is one of each.

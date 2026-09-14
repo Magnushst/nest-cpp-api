@@ -31,8 +31,8 @@ It produces two programs in `build/`:
 
 | Program | Source |
 | --- | --- |
-| `build/brunel_alpha_raw` | `reference/brunel_alpha_raw.cpp`, against the kernel API as it is |
-| `build/brunel_alpha` | `draft/examples/brunel_alpha.cpp`, against the drafted interface |
+| `build/brunel_alpha_raw` | `brunel/brunel_alpha_raw.cpp`, against the kernel API as it is |
+| `build/brunel_alpha` | `brunel/brunel_alpha.cpp`, against the nest_cpp interface |
 
 The link line puts the three static libraries inside
 `-Wl,--start-group ... -Wl,--end-group`, because they refer to each other. No
@@ -78,7 +78,7 @@ recent laptop core.
 ## Check that all three agree
 
 ```sh
-validation/check.sh [scratch-dir]
+brunel/check.sh [scratch-dir]
 ```
 
 This builds both programs, runs them and the Python reference, and fails unless:
@@ -101,7 +101,7 @@ a silently different simulation.
 ## Measure thread scaling
 
 ```sh
-validation/scaling.sh [scratch-dir]
+brunel/scaling.sh [scratch-dir]
 ```
 
 Sweeps `--threads` over 1, 2, 4 and 6, three repeats each, under
@@ -126,7 +126,7 @@ by hand, keep all three inside `-Wl,--start-group ... -Wl,--end-group`.
 
 **`nest::BadParameter: start < stop required.`** — a `slice_nc` call using 0
 based indices. The kernel wants a 1 based start and an inclusive stop. The
-drafted interface converts for you; the raw program has to do it by hand.
+nest_cpp interface converts for you; the raw program has to do it by hand.
 
 **`nest::TypeMismatch` on a status read** — node collection status arrives as
 `AnyVector`, a vector of variants. See finding 2 in
