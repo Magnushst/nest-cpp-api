@@ -127,6 +127,54 @@ synapse dictionary is built inside `connect`.
 `nestkernel/node_collection.h`, and `nest::api::names` is an alias for
 `nest::names`, so a program needs one include.
 
+### 8. Parameters are values, and the operations on them are reachable (finding 8)
+
+```cpp
+const api::SynSpec syn { api::Params {
+  { names::synapse_model, std::string( "static_synapse" ) },
+  { names::weight, api::math::redraw( api::random::normal( w_mean, w_std ), w_min, w_max ) },
+  { names::delay, api::math::redraw( api::random::normal( d_mean, d_std ), delay_min, INF ) } } };
+
+api::connect( pops[ j ], pops[ i ], api::ConnSpec::fixed_total_number( n ), syn );
+```
+
+The microcircuit writes that 64 times, once per pair of populations. Against the
+kernel API directly, the same specification is this, which compiles and is what
+the interface removes:
+
+```cpp
+#include "parameter.h"   // redraw_parameter is not declared in nest.h
+
+Dictionary weight_spec;
+weight_spec[ nest::names::mean ] = w_mean;
+weight_spec[ nest::names::std ] = w_std;
+nest::ParameterPTR weight =
+  nest::redraw_parameter( nest::create_parameter( "normal", weight_spec ), w_min, w_max );
+
+Dictionary delay_spec;
+delay_spec[ nest::names::mean ] = d_mean;
+delay_spec[ nest::names::std ] = d_std;
+nest::ParameterPTR delay =
+  nest::redraw_parameter( nest::create_parameter( "normal", delay_spec ), delay_min, INF );
+
+Dictionary syn;
+syn[ nest::names::synapse_model ] = std::string( "static_synapse" );
+syn[ nest::names::weight ] = weight;
+syn[ nest::names::delay ] = delay;
+const std::vector< Dictionary > syn_specs { syn };
+
+Dictionary conn;
+conn[ nest::names::rule ] = std::string( "fixed_total_number" );
+conn[ nest::names::N ] = n;
+
+nest::connect( pops[ j ], pops[ i ], conn, syn_specs );
+```
+
+Twenty lines against five, a named temporary for every dictionary because
+`connect` takes the synapse specification as a vector, and an extra kernel
+header because half the `Parameter` system is not in `nest.h`. Both forms were
+compiled; neither is a caricature of the other.
+
 ## Conventions taken from NEST rather than invented
 
 * **Keys are `nest::names` constants.** `names::tau_syn_ex` rather than
