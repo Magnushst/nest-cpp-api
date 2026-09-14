@@ -4,13 +4,17 @@ A header-only C++ interface to the NEST simulation kernel, together with the
 network models used to specify and verify it.
 
 NEST 3.10 is driven from Python. Its kernel exposes a C++ API, but no C++ caller
-can currently reach it. This repository provides an interface over that API and
-validates it against models taken from the upstream PyNEST examples: each model
-is written in C++ against the interface and run alongside the Python original,
-and the two are compared spike for spike. Every performance and correctness
-claim below is a measurement taken from those runs.
+can currently reach it, because an installed NEST ships the headers and not the
+libraries. This repository fixes that and builds an interface over the API,
+validated against models taken from the upstream PyNEST examples: each model is
+written in C++ against the interface and run alongside the Python original, and
+the two are compared spike for spike. Every performance and correctness claim
+below is a measurement taken from those runs.
 
-The NEST sources are not modified, and are read only from this project.
+The parts that belong in NEST are prepared as a pull request against
+`nest-simulator`: run [`upstream/assemble.sh`](upstream/README.md) to build the
+branch and write the patch series. No existing NEST checkout is touched; the
+script clones one of its own.
 
 ## What the kernel offers today
 
