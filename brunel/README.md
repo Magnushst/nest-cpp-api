@@ -90,11 +90,10 @@ next to the wall clock of the whole process. The phases agree, because all three
 run the same `libnestkernel.a` over the same network; the time spent outside the
 kernel shows PyNEST costing about 0.15 s more out of 16 s, which is interpreter
 start-up and imports, paid once. The numbers are in the speed section of the [top level
-README](../README.md). C++ is at parity and no faster, which is the honest
-answer: this model issues about a dozen calls into the kernel, so there is no
-interpreter overhead to recover.
+README](../README.md). C++ is at parity and no faster: this model issues about
+a dozen calls into the kernel, so there is no interpreter overhead to recover.
 
-## What it finds, and why it is worth saying
+## The activity regime of this parameter set
 
 At `g` = 5 and `eta` = 2 the mean input to a neuron sits at 1.22 times threshold.
 The neuron is therefore carried over threshold by the mean input alone rather
@@ -119,9 +118,10 @@ gives 27.68 Hz with nothing fitted, against 28.54 Hz measured: 3.1% error.
 So this parameter set is **asynchronous regular**. Neurons are close to
 independent yet fire close to periodically. That is a property of the upstream
 example's parameters and not of the translation, since the Python original
-produces the identical spikes. It is written down here because a reference
-implementation should state the regime it is in rather than let a reader assume
-the asynchronous irregular one that Brunel networks are usually associated with.
+produces the identical spikes. It is recorded here because a reference
+implementation should state its regime explicitly: Brunel networks are commonly
+assumed to be in the asynchronous irregular regime, and this parameter set is
+not.
 Where `g` = 5, `eta` = 2 sits on Brunel's own phase diagram is a separate
 question, and this repository has not checked it.
 

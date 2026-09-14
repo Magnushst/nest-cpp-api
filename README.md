@@ -1,17 +1,18 @@
 # A C++ API for NEST
 
-NEST is driven from Python. The NEST team would like it to be drivable from C++
-as well. This repository is that interface, plus the case studies that drive it.
+A header-only C++ interface to the NEST simulation kernel, together with the
+network models used to specify and verify it.
 
-The method is the same for every model: take a network that already exists as an
-upstream NEST Python example, write it again in C++ against the interface
-proposed here, run both, and compare. The models are not the point. They are how
-the interface gets specified, exercised and checked, so that every claim below is
-a measurement rather than a design opinion.
+NEST 3.10 is driven from Python. Its kernel exposes a C++ API, but no C++ caller
+can currently reach it. This repository provides an interface over that API and
+validates it against models taken from the upstream PyNEST examples: each model
+is written in C++ against the interface and run alongside the Python original,
+and the two are compared spike for spike. Every performance and correctness
+claim below is a measurement taken from those runs.
 
-Nothing here modifies NEST. The NEST checkout is read only from this project.
+The NEST sources are not modified, and are read only from this project.
 
-## The finding that shapes the work
+## What the kernel offers today
 
 **NEST already has a C++ API. What it does not have is a way to use it.**
 
@@ -66,14 +67,14 @@ A new model is a new directory. `build.sh` picks it up with no change.
 
 Brunel is the smallest network that is still a real network: two populations,
 one Poisson drive, two recorders, random fixed indegree connectivity, about a
-dozen API calls. It fixes the shape of the interface. The microcircuit is the
-test of whether that shape generalises: eight populations, an eight by eight
+dozen API calls. It fixes the shape of the interface. The microcircuit tests
+whether that shape generalises: eight populations, an eight by eight
 connectivity matrix, per population drive and recorders, randomised initial
 states, weights and delays drawn from distributions, and scaling logic. It needs
 several times the API surface, including the `Parameter` system.
 
-Each model directory documents its own network, its own checks and its own
-results. This page is about the interface.
+Each model directory documents its own network, checks and results. This page
+covers the interface itself.
 
 ## The interface adds no simulation behaviour
 
@@ -89,8 +90,9 @@ the numbers and for what the network itself does.
 ## What the interface changes
 
 What it adds is the part PyNEST adds on the Python side and nobody has added on
-the C++ side. Each row below exists because writing a model without it hurt, and
-three of them are run time failures that the compiler does not catch:
+the C++ side. Every row below was met while writing a model against the kernel
+API directly, and three of them are run time failures that the compiler does not
+catch:
 
 | Kernel API today | In `nest_cpp` |
 | --- | --- |
@@ -119,8 +121,8 @@ between good and bad style:
   checked by the compiler where `"tau_syn_ex"` is checked by nobody.
 * **Constants come from `numerics`.** `numerics::e` is the value NEST's own
   models use. Substituting it for `std::exp(1.0)` left the derived rates
-  unchanged in the 17th digit and the spike files byte identical, which is how
-  we know it was a safe swap and not a silent perturbation.
+  unchanged in the 17th digit and the spike files byte identical, establishing
+  the substitution as exact rather than a silent perturbation.
 * **Failures are NEST exceptions.** The `nest_cpp` header throws
   `nest::BadParameter`, `nest::TypeMismatch`, `nest::DimensionMismatch` and
   `nest::KeyError`, so a caller catches one hierarchy.
