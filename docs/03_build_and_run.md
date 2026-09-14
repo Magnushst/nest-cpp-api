@@ -136,16 +136,17 @@ brunel/parity.sh [scratch-dir]
 ```
 
 Runs the same network single threaded through the Python reference, the raw C++
-program and the `nest_cpp` one, three timed runs each after a discarded warm-up,
-and prints two clocks side by side: NEST's own create, connect and simulate
-timers, and the wall clock of the whole process. Override with `REPEATS` and
-`MASK`.
+program and the `nest_cpp` one, four timed rounds after a discarded warm-up, and
+prints NEST's own create, connect and simulate timers, the wall clock of the
+whole process, and the difference between them. The order within a round is
+reversed on alternate rounds, so no implementation is always the one that runs
+on a cold machine. Override with `REPEATS` (keep it even) and `MASK`.
 
-The phase timers answer whether the kernel does the same work, and they do agree.
-The whole-process clock answers what the driver costs on top, which is where
+The phase timers answer whether the kernel does the same work, and they agree.
+The time outside them answers what the driver costs on top, which is where
 Python's interpreter start-up and imports show up. The measured result is in the
 speed section of the [README](../README.md): parity on the kernel phases, and
-about 0.15 s of a 16 s run attributable to PyNEST.
+about 0.15 s of a 16 s run attributable to PyNEST, paid once at start-up.
 
 Single threaded is not an accident here. The Python reference does not take a
 thread count, and changing it would change which random stream each node draws

@@ -87,9 +87,9 @@ estimators against synthetic Poisson input.
 
 `parity.sh` times all three single threaded and reports NEST's own phase timers
 next to the wall clock of the whole process. The phases agree, because all three
-run the same `libnestkernel.a` over the same network; the wall clock shows
-PyNEST costing about 0.15 s more out of 16 s, which is interpreter start-up and
-imports. The numbers are in the speed section of the [top level
+run the same `libnestkernel.a` over the same network; the time spent outside the
+kernel shows PyNEST costing about 0.15 s more out of 16 s, which is interpreter
+start-up and imports, paid once. The numbers are in the speed section of the [top level
 README](../README.md). C++ is at parity and no faster, which is the honest
 answer: this model issues about a dozen calls into the kernel, so there is no
 interpreter overhead to recover.
