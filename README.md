@@ -156,11 +156,13 @@ catch:
 | the connectivity rule must be named on every call | `ConnSpec` defaults to `all_to_all` |
 | the synapse specification must be a dictionary inside a vector | `SynSpec` is constructible from a model name |
 | `operator+` on node collections lives in `node_collection.h`, not `nest.h` | re-exported |
+| the parameter operations live in `parameter.h`, not `nest.h`: `create_parameter` is in the API header, `redraw_parameter` and the arithmetic are not | `random::normal`, `math::redraw` and operators on `Parameter` |
 
 Written against the interface, the Brunel example is 161 lines against 271 for
 the same network written against the kernel API directly. The line count is the
-lesser half of it: three of the eight rows above are mistakes that compile
-cleanly and fail at run time.
+lesser half of it: three of the nine rows above are mistakes that compile
+cleanly and fail at run time, and two of them are the same problem, namely that
+`nest.h` is presented as the API header and is not complete.
 
 ## NEST's own conventions are used throughout
 

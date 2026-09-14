@@ -80,11 +80,12 @@ A C++ program calling `nest::init_nest` gets the full set of built in neuron,
 device and synapse models with no further work. It compiled and linked on the
 first attempt, with no position independent code problem and no flag mismatch.
 
-## Seven places the API surprises a caller
+## Eight places the API surprises a caller
 
-These were all found by writing the Brunel network against the kernel API and
-running it. Three of them compile cleanly and fail at run time, which is the
-category that matters.
+The first seven were found by writing the Brunel network against the kernel API
+and running it; the eighth by writing the microcircuit, which needs the
+`Parameter` system. Three of them compile cleanly and fail at run time, which is
+the category that matters.
 
 1. **`slice_nc` uses a 1 based start and an inclusive stop.**
    `nestkernel/nest.cpp:330` subtracts one from a non negative `start` and
@@ -123,6 +124,16 @@ category that matters.
    hand, and `shutdown_nest` must be reached on every path or MPI is left
    un-finalised. Any exception between them leaks the finalisation.
 
+8. **Half the `Parameter` system is not in `nest.h` either.**
+   `create_parameter` is declared there, but everything you do to a parameter
+   afterwards is not: `redraw_parameter`, `multiply_parameter`,
+   `add_parameter`, `compare_parameter`, `conditional_parameter` and the rest
+   are declared at `nestkernel/parameter.h:1504` onwards. The microcircuit
+   needs `redraw_parameter` for every one of its 64 connection
+   specifications, so a caller who includes only the API header cannot write
+   the model at all. This is the same shape of problem as finding 6, and it is
+   the second instance of it.
+
 ## Two things that turned out to be fine
 
 Worth recording, because both were suspected and neither is true.
@@ -151,7 +162,12 @@ descending order of how hard they are for someone outside the NEST team to fix:
 1. **Packaging.** An installed NEST cannot be linked against. This is a change
    to `nestkernel/CMakeLists.txt` and `nest-config`, and only the NEST team can
    make it. Everything in this repository links against a build tree instead.
-2. **Ergonomics and safety.** The seven surprises above. This is what
+2. **Ergonomics and safety.** The eight surprises above. This is what
    [02_the_api.md](02_the_api.md) sets out.
 3. **An example and documentation.** There is currently neither. This repository
-   is one of each.
+   is two of the first and one of the second.
+
+Two of the eight, findings 6 and 8, are the same problem: `nest.h` is presented
+as the API header and is not complete, so a caller has to know which other
+kernel headers to reach into. That is worth fixing at source whether or not
+anything else here is adopted.
