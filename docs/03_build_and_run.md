@@ -28,15 +28,17 @@ NEST_BUILD=/path/to/nest/build ./build.sh
 The script defaults `NEST_BUILD` to `/home/magnus/Projects/nest/nest_master/build`
 and derives `NEST_CONFIG` from it; either can be overridden in the environment.
 
-Each model lives in its own directory and every `.cpp` in it becomes a program.
-`./build.sh` with no arguments builds them all; `./build.sh brunel` builds one.
-Adding a model means adding a directory, not editing the script. Today that
-gives two programs in `build/`:
+Every directory holding a `.cpp` is built, and every `.cpp` in it becomes a
+program. `./build.sh` with no arguments builds them all; `./build.sh brunel`
+builds one. Adding a model means adding a directory, not editing the script.
+Today that gives four programs in `build/`:
 
 | Program | Source |
 | --- | --- |
 | `build/brunel_alpha_raw` | `brunel/brunel_alpha_raw.cpp`, against the kernel API as it is |
 | `build/brunel_alpha` | `brunel/brunel_alpha.cpp`, against the nest::api interface |
+| `build/microcircuit` | `pd14/microcircuit.cpp`, the cortical microcircuit |
+| `build/api_test` | `tests/api_test.cpp`, the interface's own test |
 
 The link line puts the three static libraries inside
 `-Wl,--start-group ... -Wl,--end-group`, because they refer to each other. No
@@ -128,6 +130,28 @@ process owns which node and therefore which random stream it draws from. The
 firing rate stays near 28.5 Hz, so the runs are statistically equivalent, but
 they are not the same run. This is why the default is one thread and why
 `check.sh` does not vary it.
+
+## Test the interface
+
+```sh
+cd $(mktemp -d) && /path/to/nest-cpp-api/build/api_test
+```
+
+62 checks over every entry point of `nest_api.h` against a running kernel,
+including the failures a caller can provoke. It needs no data files and takes a
+second. It prints a line per failure and exits non-zero if there is one.
+
+## Check the microcircuit
+
+```sh
+pd14/check.sh [scratch-dir]
+```
+
+Runs the vendored PyNEST microcircuit and the C++ one and compares first the
+derived network to 17 significant digits, then the output directories byte for
+byte. `PRESIM` and `SIM` shorten the run, `THREADS` sets the thread count, and
+`RANKS=2 THREADS=1` runs both under `mpirun`, which is how the two are checked
+to be rank agnostic.
 
 ## Compare against PyNEST
 

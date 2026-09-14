@@ -15,19 +15,21 @@ the C++ side.
 
 ## Scope, and how it grows
 
-The interface covers what the models in this repository need, and nothing
-speculative. Today that is the Brunel network: about a dozen operations, namely
-bring the kernel up, set kernel status, create nodes with parameters, copy a
-synapse model, connect with `all_to_all` and with `fixed_indegree`, slice a
-population, concatenate two populations, simulate, and read a scalar out of node
-status and out of model defaults.
+The interface covers what the models in this repository need and what
+`tests/api_test.cpp` can exercise against a running kernel, and nothing
+speculative. That is a deliberate rule rather than an accident of being early: an
+interface whose every line has been run against a checked result is more useful
+than a sketch of the whole API. Each new model extends it by exactly what that
+model needs, and the check for that model pins the extension.
 
-That is a deliberate rule rather than an accident of being early. An interface
-that covers its models completely is more useful than a sketch of the whole API,
-because every line of it has been run against a result that is checked. Each new
-model in a sibling directory extends the interface by exactly what it needs, and
-the check for that model pins the extension. The items already known to be
-needed next are listed at the end.
+Two models and one test have shaped it so far. Brunel fixed the core: the
+kernel as an object, node collections as values, parameters beside the
+population they belong to, typed status reads, connectivity rules. The
+microcircuit added the `Parameter` system, `fixed_total_number`, per-node
+parameter vectors, indexing, and `prepare`/`run`/`cleanup`. The test added what
+a C++ caller needs but neither model happens to use: parameter arithmetic,
+connection queries, `get_nodes`, membership and identity on node collections,
+vector-valued status, module loading and the MPI rank queries.
 
 ## The decisions, each answering an audit finding
 
@@ -150,26 +152,37 @@ synapse dictionary is built inside `connect`.
 
 Every wrapper is a forwarding call or a small value type, and the header is
 compiled into the caller. The measured build and simulate times of the two C++
-programs agree to within run to run noise, which is what should happen when the
+Brunel programs, one against this interface and one against the kernel API
+directly, agree to within run to run noise, which is what should happen when the
 work is all inside the kernel. See the table in the README.
+
+## Tested
+
+`tests/api_test.cpp` runs 62 checks against a running kernel, covering every
+entry point in the header and the failures a caller can provoke: a negative
+slice index, a scalar read of a many-node collection, an unknown key, a wrong
+type, a per-node vector of the wrong length, and `one_to_one` between
+collections of different sizes. Each must arrive as the NEST exception it should
+be rather than as a crash or a wrong answer.
 
 ## What is deliberately not here
 
 * **Spatial networks.** `create_spatial`, masks, and position based parameters.
-* **The `Parameter` system.** `nest::create_parameter` builds distributions that
-  can be assigned to node parameters, which is how randomised initial states and
-  distance dependent weights are written. Brunel does not use it, so it is not
-  covered. It is the first thing to add, because the Potjans and Diesmann
-  microcircuit needs it.
-* **`prepare` / `run` / `cleanup`.** Partial simulation, needed for anything
-  that inspects or changes the network mid run.
-* **Connection queries.** `get_connections` and the synapse collection that
-  PyNEST builds on it.
-* **Recording to memory.** The example records to file, as the upstream example
-  does. Reading spikes back out of a `spike_recorder` in memory means reading
-  vector valued status, which `detail::scalar` deliberately refuses.
-* **MPI.** `init_nest` initialises MPI and the code is rank agnostic, but
-  nothing here has been run on more than one rank.
+* **Recording to memory.** Both models record to file, as the upstream examples
+  do. Reading spikes back out of a `spike_recorder` in memory means reading a
+  dictionary of vectors out of one node's status, which is a different shape
+  from `get_all`, and no model here needs it.
+* **Tripartite connections**, `connect_arrays` and SONATA. Each is a separate
+  entry point in `nest.h` with its own argument conventions, and nothing here
+  uses any of them.
+* **Structural plasticity.** `enable_structural_plasticity` and the growth
+  curves behind it.
+* **MUSIC.** The only C++ code in NEST's own `examples/` directory is MUSIC,
+  and it goes through a different interface.
+
+All of these remain reachable through `nestkernel/nest.h` directly: the
+interface is a layer over the kernel API, not a replacement for it, and mixing
+the two in one program is expected.
 
 ## Open questions for the NEST team
 

@@ -35,26 +35,38 @@ The only thing in the tree that consumes the C++ API is the Cython module
 (`examples/` contains only MUSIC) and no documentation for C++ use.
 
 So this project links against a NEST **build tree** rather than an install
-prefix. Making an installed NEST linkable is a packaging change for the NEST
-team, and it is the single most valuable thing in this repository for them.
-See [docs/01_state_of_the_kernel.md](docs/01_state_of_the_kernel.md).
+prefix, and it ships the fix: `packaging/install-kernel-library.patch` installs
+the three kernel archives beside their headers and adds
+`nest-config --kernel-libs`. With it applied, the microcircuit builds and links
+against an install prefix alone and produces the same spikes. See
+[docs/04_packaging.md](docs/04_packaging.md) for the change and the evidence,
+and [docs/01_state_of_the_kernel.md](docs/01_state_of_the_kernel.md) for the
+audit it came from.
 
 ## Layout
 
 ```
 include/nest/nest_api.h      the interface, header only, namespace nest::api
-docs/                        the audit, the interface, how to build and run
+tests/                       the interface's own test, against a running kernel
+packaging/                   the change NEST needs before any of this links
+upstream/                    the same work, shaped as a pull request to NEST
+docs/                        the audit, the interface, packaging, how to run
 <model>/                     one directory per case study, self documenting
-build.sh                     builds every model directory
+build.sh                     builds every directory that holds a .cpp
 ```
 
 | Path | What it is |
 | --- | --- |
 | `include/nest/nest_api.h` | The C++ interface. Header only, no build step. |
+| `tests/api_test.cpp` | 62 checks over every entry point, including the failures. |
+| `packaging/install-kernel-library.patch` | Makes an installed NEST linkable. Verified end to end. |
+| `upstream/assemble.sh` | Builds the pull request branch and writes the patch series. |
 | `docs/01_state_of_the_kernel.md` | What the kernel API offers today, and what surprises a C++ caller. |
 | `docs/02_the_api.md` | What the interface does about each of those, and why. |
 | `docs/03_build_and_run.md` | Building against a NEST build tree, and running the checks. |
+| `docs/04_packaging.md` | The packaging change, and the evidence that it works. |
 | `brunel/` | Case study 1, the Brunel (2000) balanced random network. |
+| `pd14/` | Case study 2, the Potjans and Diesmann (2014) microcircuit. |
 
 A new model is a new directory. `build.sh` picks it up with no change.
 
@@ -63,7 +75,7 @@ A new model is a new directory. `build.sh` picks it up with no change.
 | Model | Directory | Where it stands |
 | --- | --- | --- |
 | Brunel (2000), balanced random network | [`brunel/`](brunel/README.md) | Complete. Spikes byte identical to the upstream Python example, network state checked against theory, speed measured against PyNEST. |
-| Potjans and Diesmann (2014), cortical microcircuit | `pd14/` | In progress. |
+| Potjans and Diesmann (2014), cortical microcircuit | [`pd14/`](pd14/README.md) | Complete. Byte identical to the upstream Python on one rank, on four threads and on two MPI ranks, and reproduces the reference data the NEST team committed with the example. |
 
 Brunel is the smallest network that is still a real network: two populations,
 one Poisson drive, two recorders, random fixed indegree connectivity, about a
@@ -75,6 +87,42 @@ several times the API surface, including the `Parameter` system.
 
 Each model directory documents its own network, checks and results. This page
 covers the interface itself.
+
+## Where this stands
+
+Verified, each by a check in this repository that can be re-run:
+
+* Both models produce spike files **byte identical** to the upstream Python,
+  at one thread, at four threads, and on two MPI ranks.
+* The microcircuit reproduces the **reference data the NEST team committed**
+  with the PyNEST example: eight spike files, 20,505 spikes, produced by a
+  different program on a different machine against an older kernel.
+* Every entry point of the interface is exercised by `tests/api_test.cpp`
+  against a running kernel: 62 checks, including the failures a caller can
+  provoke.
+* The packaging patch makes an installed NEST linkable, demonstrated by
+  building the microcircuit against an install prefix alone and getting those
+  same spikes.
+* Every C++ file passes `clang-format --dry-run --Werror` against NEST's own
+  `.clang-format`.
+
+Not done, and not claimed:
+
+* **Spatial networks, tripartite connections, `connect_arrays`, SONATA,
+  structural plasticity and recording to memory** have no wrapper. They remain
+  reachable through `nestkernel/nest.h` directly.
+* **One compiler and one operating system.** GCC 16.2.1 on Linux. Nothing has
+  been built with Clang or on macOS, and the packaging patch's Apple branch is
+  reasoned rather than tested.
+* **Two MPI ranks on one machine.** Nothing has been run on a cluster.
+* **The full-scale microcircuit** has not been run here: 77,169 neurons and
+  300 million synapses against a NEST built with assertions live does not
+  belong on a laptop. Both implementations take the scaling factors as
+  options and agree at every factor tried.
+* **The decisions that are the NEST team's**, listed at the end of
+  [docs/02_the_api.md](docs/02_the_api.md): where the header should live, what
+  the namespace should be, and whether parts of the kernel API should be fixed
+  rather than wrapped.
 
 ## The interface adds no simulation behaviour
 
@@ -230,9 +278,13 @@ See [docs/03_build_and_run.md](docs/03_build_and_run.md). In short:
 
 ```sh
 NEST_BUILD=/path/to/nest/build ./build.sh
-brunel/check.sh
-brunel/scaling.sh
-brunel/parity.sh
+build/api_test                 # the interface itself
+brunel/check.sh                # case study 1
+pd14/check.sh                  # case study 2
+RANKS=2 THREADS=1 pd14/check.sh   # the same, under MPI
+brunel/scaling.sh              # what thread count buys
+brunel/parity.sh               # C++ against PyNEST
+upstream/assemble.sh           # build the pull request to NEST
 ```
 
 `NEST_BUILD` must be a configured and built NEST source tree, not an install
