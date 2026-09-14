@@ -48,12 +48,10 @@ g++ -fopenmp -o model model.o $(nest-config --kernel-libs)
 ## What has been verified
 
 * The patch applies cleanly to NEST 3.10.0 at `acca9704d` (`git apply --check`).
-* A NEST built from a patched copy of that tree installs the three archives into
-  `<prefix>/lib/nest`, `nest-config --kernel-libs` names them, and
-  `pd14/microcircuit.cpp` compiled and linked against that install prefix alone,
-  with no reference to any build directory, produces the same spikes as the
-  in-tree build. The copy was made outside the NEST checkout, which this project
-  does not modify.
+* Nothing else yet. Building a patched copy of NEST and linking a program
+  against the resulting install prefix is in progress; this section will say
+  what happened either way. The copy is made outside the NEST checkout, which
+  this project does not modify.
 
 ## The alternative the NEST team may prefer
 
