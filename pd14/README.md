@@ -48,6 +48,11 @@ identical**, 21,093 spikes across eight populations and four virtual processes,
 and the node ID bounds of every population agree. The reported totals agree as
 well: 7,717 neurons and 3,004,241 synapses.
 
+On two MPI ranks of one thread each, the same comparison holds: 17 files byte
+identical, 20,992 spikes. Both implementations are rank agnostic, which is the
+only sense in which a driver can be: every rank runs the same program and the
+kernel decides which nodes it owns. Run it with `RANKS=2 THREADS=1 pd14/check.sh`.
+
 That covers the C++ against the Python running here. There is a stronger check
 available, and it also passes: the upstream example ships the spike files it
 produced when the NEST team ran it, committed alongside the code. Running the

@@ -16,7 +16,9 @@
 #
 # Both run with the upstream defaults, which is 500 ms of presimulation and
 # 1000 ms of simulation at one tenth of the neurons and one tenth of the
-# indegrees, on four threads. Override with PRESIM and SIM for a quicker pass.
+# indegrees, on four threads. Override with PRESIM and SIM for a quicker pass,
+# and with RANKS to run under MPI: RANKS=2 THREADS=1 checks that both are rank
+# agnostic, since which virtual process owns a node decides what it draws.
 #
 # Usage:  pd14/check.sh [scratch-dir]
 set -euo pipefail
@@ -27,6 +29,7 @@ PYNEST="${PYNEST:-${NEST_BUILD}/install/lib/python3.14/site-packages}"
 PYTHON="${PYTHON:-/usr/bin/python3.14}"
 MASK="${MASK:-0,1,3,6,8,10}"
 THREADS="${THREADS:-4}"
+RANKS="${RANKS:-1}"
 PRESIM="${PRESIM:-500}"
 SIM="${SIM:-1000}"
 WORK="${1:-$(mktemp -d)}"
@@ -52,10 +55,15 @@ else
   echo "   DIFFERS"; diff "${WORK}/derived.py" "${WORK}/derived.cpp" | head -10; status=1
 fi
 
-echo "== running, ${PRESIM} ms presimulation and ${SIM} ms simulation on ${THREADS} threads"
-( cd "${WORK}/py" && PYTHONPATH="${PYNEST}" taskset -c "${MASK}" "${PYTHON}" "${HERE}/pd14/reference/run_ref.py" \
+echo "== running, ${PRESIM} ms presimulation and ${SIM} ms simulation on ${RANKS} rank(s) of ${THREADS} thread(s)"
+if [[ "${RANKS}" -gt 1 ]]; then
+  launch=( mpirun -np "${RANKS}" --oversubscribe )
+else
+  launch=( taskset -c "${MASK}" )
+fi
+( cd "${WORK}/py" && PYTHONPATH="${PYNEST}" "${launch[@]}" "${PYTHON}" "${HERE}/pd14/reference/run_ref.py" \
     --quiet --threads "${THREADS}" --presim "${PRESIM}" --sim "${SIM}" --data-path "${WORK}/py" ) > "${WORK}/py.log" 2>&1
-( cd "${WORK}/cpp" && taskset -c "${MASK}" "${HERE}/build/microcircuit" \
+( cd "${WORK}/cpp" && "${launch[@]}" "${HERE}/build/microcircuit" \
     --quiet --threads="${THREADS}" --presim="${PRESIM}" --sim="${SIM}" --data-path="${WORK}/cpp" ) > "${WORK}/cpp.log" 2>&1
 
 echo "== output files"

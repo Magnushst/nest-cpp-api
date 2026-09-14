@@ -177,15 +177,25 @@ main( int argc, char* argv[] )
     { names::print_time, opts.print_time } } );
 
   const double resolution = nestpp::get< double >( kernel.status(), names::resolution );
-  std::printf( "RNG seed: %ld\n", nestpp::get< long >( kernel.status(), names::rng_seed ) );
-  std::printf( "Total number of virtual processes: %ld\n",
-    nestpp::get< long >( kernel.status(), names::total_num_virtual_procs ) );
+
+  // Every rank runs this same program; only rank 0 says so, as the upstream
+  // model does.
+  const bool speak = nestpp::rank() == 0;
+  const long num_ranks = nestpp::num_processes();
+  if ( speak )
+  {
+    std::printf( "RNG seed: %ld\n", nestpp::get< long >( kernel.status(), names::rng_seed ) );
+    std::printf( "Total number of virtual processes: %ld\n", nestpp::num_virtual_processes() );
+  }
 
   // --- Network.__create_neuronal_populations ------------------------------
   // Create, then set the fixed parameters, then set the distributed initial
   // membrane potential: three kernel calls per population, in that order,
   // because the third draws random numbers and the first two do not.
-  std::printf( "Creating neuronal populations.\n" );
+  if ( speak )
+  {
+    std::printf( "Creating neuronal populations.\n" );
+  }
   std::vector< nestpp::NodeCollection > pops;
   pops.reserve( pd14::NUM_POPS );
   for ( size_t i = 0; i < pd14::NUM_POPS; ++i )
@@ -221,13 +231,19 @@ main( int argc, char* argv[] )
   }
 
   // --- Network.__create_recording_devices ---------------------------------
-  std::printf( "Creating recording devices.\n" );
+  if ( speak )
+  {
+    std::printf( "Creating recording devices.\n" );
+  }
   const auto spike_recorders = nestpp::create( "spike_recorder",
     pd14::NUM_POPS,
     { { names::record_to, std::string( "ascii" ) }, { names::label, opts.data_path + "/spike_recorder" } } );
 
   // --- Network.__create_poisson_bg_input ----------------------------------
-  std::printf( "Creating Poisson generators for background input.\n" );
+  if ( speak )
+  {
+    std::printf( "Creating Poisson generators for background input.\n" );
+  }
   const auto poisson_bg_input = nestpp::create( "poisson_generator", pd14::NUM_POPS );
   {
     std::vector< nestpp::Params > rates;
@@ -245,7 +261,10 @@ main( int argc, char* argv[] )
   // inhibitory one stays negative, and a delay stays at or above the
   // resolution. The lower bound on the delay is half a step below the
   // resolution because the kernel rounds delays to the grid.
-  std::printf( "Connecting neuronal populations recurrently.\n" );
+  if ( speak )
+  {
+    std::printf( "Connecting neuronal populations recurrently.\n" );
+  }
   const double delay_min = resolution - 0.5 * resolution;
   for ( size_t i = 0; i < pd14::NUM_POPS; ++i )
   {
@@ -269,14 +288,20 @@ main( int argc, char* argv[] )
   }
 
   // --- Network.__connect_recording_devices --------------------------------
-  std::printf( "Connecting recording devices.\n" );
+  if ( speak )
+  {
+    std::printf( "Connecting recording devices.\n" );
+  }
   for ( size_t i = 0; i < pd14::NUM_POPS; ++i )
   {
     nestpp::connect( pops[ i ], spike_recorders[ static_cast< long >( i ) ] );
   }
 
   // --- Network.__connect_poisson_bg_input ---------------------------------
-  std::printf( "Connecting Poisson generators for background input.\n" );
+  if ( speak )
+  {
+    std::printf( "Connecting Poisson generators for background input.\n" );
+  }
   for ( size_t i = 0; i < pd14::NUM_POPS; ++i )
   {
     const nestpp::SynSpec syn { nestpp::Params { { names::synapse_model, std::string( "static_synapse" ) },
@@ -295,9 +320,15 @@ main( int argc, char* argv[] )
   // --- simulate ------------------------------------------------------------
   // A presimulation first, whose spikes are recorded but whose startup
   // transient is not representative of the network state.
-  std::printf( "Simulating %.1f ms.\n", opts.presim );
+  if ( speak )
+  {
+    std::printf( "Simulating %.1f ms.\n", opts.presim );
+  }
   nestpp::simulate( opts.presim );
-  std::printf( "Simulating %.1f ms.\n", opts.sim );
+  if ( speak )
+  {
+    std::printf( "Simulating %.1f ms.\n", opts.sim );
+  }
   nestpp::simulate( opts.sim );
 
   // --- results --------------------------------------------------------------
@@ -309,7 +340,20 @@ main( int argc, char* argv[] )
   const long num_connections = nestpp::get< long >( kernel_final, names::num_connections );
   const double t_total = opts.presim + opts.sim;
 
+  if ( not speak )
+  {
+    kernel.shutdown( 0 );
+    return 0;
+  }
+
   std::printf( "Microcircuit simulation (C++, nest_cpp interface)\n" );
+  // On more than one rank each recorder counts only the spikes of the neurons
+  // that live on this rank, so the counts below are rank 0's share rather than
+  // the total. The spike files hold all of it.
+  if ( num_ranks > 1 )
+  {
+    std::printf( "Event counts below are rank 0's share of %ld ranks.\n", num_ranks );
+  }
   std::printf( "Number of neurons : %ld\n", network_size - 2 * static_cast< long >( pd14::NUM_POPS ) );
   std::printf( "Number of synapses: %ld\n", num_connections );
   for ( size_t i = 0; i < pd14::NUM_POPS; ++i )

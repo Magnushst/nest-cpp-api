@@ -74,7 +74,14 @@ kernel = nest.GetKernelStatus()
 events = [int(sr.n_events) for sr in net.spike_recorders]
 t_sim_total = args.presim + args.sim
 
+# Every rank runs this same script; only rank 0 reports, as the upstream model
+# does. On more than one rank the event counts below are this rank's share.
+if nest.Rank() != 0:
+    sys.exit(0)
+
 print("Microcircuit simulation (Python reference)")
+if kernel["num_processes"] > 1:
+    print("Event counts below are rank 0's share of {0} ranks.".format(kernel["num_processes"]))
 print("Number of neurons : {0}".format(kernel["network_size"] - len(events) - net.num_pops))
 print("Number of synapses: {0}".format(kernel["num_connections"]))
 for i, name in enumerate(net_dict["populations"]):
