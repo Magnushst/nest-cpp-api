@@ -2,10 +2,25 @@
 
 ## What you need
 
-A **built NEST source tree**, not an install prefix. An installed NEST ships C++
-headers but no library to link them against, for the reason set out in
-[01_state_of_the_kernel.md](01_state_of_the_kernel.md). The build tree must
-contain all three of:
+Either an installed NEST with the kernel libraries, or a built NEST source tree.
+
+**An installed NEST** works only if it has the change in
+[04_packaging.md](04_packaging.md), which is what installs the kernel libraries
+and adds `nest-config --kernel-libs`. Then:
+
+```sh
+NEST_PREFIX=/path/to/install ./build.sh
+```
+
+This is how anyone outside this project would build, and it is the case the
+packaging patch exists to enable. Without the patch, `--kernel-libs` does not
+exist and the script says so.
+
+**A built NEST source tree** is the fallback, and the default here, because the
+NEST this was developed against is unpatched. An installed NEST without the
+patch ships C++ headers and no library to link them against, for the reason set
+out in [01_state_of_the_kernel.md](01_state_of_the_kernel.md). The build tree
+must contain all three of:
 
 ```
 <build>/nestkernel/libnestkernel.a
@@ -22,11 +37,13 @@ with GCC 16.2.1 on Linux. The compiler needs C++20.
 ## Build
 
 ```sh
-NEST_BUILD=/path/to/nest/build ./build.sh
+NEST_BUILD=/path/to/nest/build ./build.sh      # against a build tree
+NEST_PREFIX=/path/to/install ./build.sh        # against an installed NEST
 ```
 
 The script defaults `NEST_BUILD` to `/home/magnus/Projects/nest/nest_master/build`
-and derives `NEST_CONFIG` from it; either can be overridden in the environment.
+and derives `NEST_CONFIG` from whichever of the two is used; any of them can be
+overridden in the environment.
 
 Every directory holding a `.cpp` is built, and every `.cpp` in it becomes a
 program. `./build.sh` with no arguments builds them all; `./build.sh brunel`
