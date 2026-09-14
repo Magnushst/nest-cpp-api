@@ -1,0 +1,78 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -292,6 +292,17 @@
+ endif ()
+ string( REPLACE ";" " " MODULE_LINK_LIBS "${MODULE_LINK_LIBS}" )
+ 
++# The kernel archives refer to each other, so a standalone C++ program linking
++# against an installed NEST has to present them to the linker as one group.
++# ld64 resolves archives without help and rejects the GNU ld syntax.
++if ( APPLE )
++  set( KERNEL_LINK_PREFIX "" )
++  set( KERNEL_LINK_SUFFIX "" )
++else ()
++  set( KERNEL_LINK_PREFIX "-Wl,--start-group" )
++  set( KERNEL_LINK_SUFFIX "-Wl,--end-group" )
++endif ()
++
+ # libraries requied to link NEST
+ set( ALL_LIBS
+   "-lnest"
+--- a/bin/nest-config.in
++++ b/bin/nest-config.in
+@@ -13,6 +13,8 @@
+   --prefix              NEST install prefix for architecture-independent files
+   --exec-prefix         NEST install prefix for architecture-dependent files
+   --libs                print library linking information for extension modules
++  --kernel-libs         print library linking information for a C++ program
++                        embedding the NEST kernel
+   --cflags              print pre-processor and compiler flags
+   --includes            print includes
+   --compiler            print the compiler used to compile NEST
+@@ -71,6 +73,10 @@
+     --libs)
+         echo "-L${prefix}/@CMAKE_INSTALL_LIBDIR@/nest @MODULE_LINK_LIBS@"
+         ;;
++    --kernel-libs)
++        kernel_libdir="${exec_prefix}/@CMAKE_INSTALL_LIBDIR@/nest"
++        echo "@KERNEL_LINK_PREFIX@ ${kernel_libdir}/libnestkernel.a ${kernel_libdir}/libmodels.a ${kernel_libdir}/libnestutil.a @KERNEL_LINK_SUFFIX@ @MODULE_LINK_LIBS@"
++        ;;
+     --compiler)
+         echo "@CMAKE_CXX_COMPILER@"
+         ;;
+--- a/libnestutil/CMakeLists.txt
++++ b/libnestutil/CMakeLists.txt
+@@ -61,3 +61,9 @@
+ install(FILES ${install_headers} ${PROJECT_BINARY_DIR}/libnestutil/config.h
+     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/nest
+ )
++
++# The headers are of no use to a C++ caller without the library to link them
++# against, so install that too.
++install(TARGETS nestutil
++    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/nest
++)
+--- a/models/CMakeLists.txt
++++ b/models/CMakeLists.txt
+@@ -57,3 +57,8 @@
+ FILTER_HEADERS("${models_sources}" install_headers)
+ install(FILES ${install_headers}
+     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/nest)
++
++# The headers are of no use to a C++ caller without the library to link them
++# against, so install that too.
++install(TARGETS models
++    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/nest)
+--- a/nestkernel/CMakeLists.txt
++++ b/nestkernel/CMakeLists.txt
+@@ -172,3 +172,10 @@
+ install( FILES ${install_headers}
+   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/nest
+ )
++
++# The headers are of no use to a C++ caller without the library to link them
++# against, so install that too. This is what makes the C++ API declared in
++# nest.h reachable from outside the build tree.
++install( TARGETS nestkernel
++  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/nest
++)
