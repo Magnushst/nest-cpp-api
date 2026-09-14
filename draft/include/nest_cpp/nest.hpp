@@ -25,18 +25,35 @@
 #define NEST_CPP_NEST_HPP
 
 #include <map>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <variant>
 #include <vector>
 
 #include "dictionary.h"
+#include "exceptions.h"
 #include "nest.h"
+#include "nest_names.h"
 #include "node_collection.h"
+#include "numerics.h"
 
 namespace nestpp
 {
+
+/**
+ * NEST's own dictionary key constants, re-exported.
+ *
+ * Every key the kernel understands is declared in `nestkernel/nest_names.h` as
+ * a named constant, so `names::tau_syn_ex` is checked by the compiler where
+ * `"tau_syn_ex"` is checked by nobody. Use these rather than string literals.
+ */
+namespace names = ::nest::names;
+
+/**
+ * NEST's own numerical constants, re-exported. In particular @c numerics::e,
+ * which is the value the kernel's own models use.
+ */
+namespace numerics = ::numerics;
 
 namespace detail
 {
@@ -58,8 +75,24 @@ concept DictAlternative = requires( const any_type& v ) { std::holds_alternative
  */
 template < DictAlternative T >
 T
+element( const any_type& value, const std::string& key )
+{
+  if ( not std::holds_alternative< T >( value ) )
+  {
+    throw nest::TypeMismatch( pretty_typename< T >() + " for key '" + key + "'", get_typename( value ) );
+  }
+  return std::get< T >( value );
+}
+
+template < DictAlternative T >
+T
 scalar( const Dictionary& dict, const std::string& key )
 {
+  if ( not dict.known( key ) )
+  {
+    throw nest::KeyError( key, "Dictionary", "nestpp::get" );
+  }
+
   const any_type& value = dict.at( key );
 
   if ( std::holds_alternative< AnyVector >( value ) )
@@ -67,10 +100,9 @@ scalar( const Dictionary& dict, const std::string& key )
     const AnyVector& items = std::get< AnyVector >( value );
     if ( items.size() != 1 )
     {
-      throw std::runtime_error( "nestpp: '" + key + "' holds " + std::to_string( items.size() )
-        + " entries; scalar() requires exactly one" );
+      throw nest::DimensionMismatch( 1, static_cast< int >( items.size() ) );
     }
-    return std::get< T >( items.front() );
+    return element< T >( items.front(), key );
   }
 
   if constexpr ( DictAlternative< std::vector< T > > )
@@ -80,14 +112,13 @@ scalar( const Dictionary& dict, const std::string& key )
       const std::vector< T >& items = std::get< std::vector< T > >( value );
       if ( items.size() != 1 )
       {
-        throw std::runtime_error( "nestpp: '" + key + "' holds " + std::to_string( items.size() )
-          + " entries; scalar() requires exactly one" );
+        throw nest::DimensionMismatch( 1, static_cast< int >( items.size() ) );
       }
       return items.front();
     }
   }
 
-  return std::get< T >( value );
+  return element< T >( value, key );
 }
 
 } // namespace detail
@@ -283,7 +314,7 @@ public:
   {
     if ( start < 0 or stop < 0 )
     {
-      throw std::invalid_argument( "nestpp: negative slice indices are not supported" );
+      throw nest::BadParameter( "nestpp::NodeCollection::slice: negative indices are not supported" );
     }
     return NodeCollection( nest::slice_nc( handle_, start + 1, stop, step ) );
   }
