@@ -47,6 +47,8 @@ import numpy as np
 
 BIN_MS = 2.0
 MAX_PAIRS = 400
+# Fixed, so that the sampled set of neuron pairs and therefore the reported
+# correlation are the same on every run and can be compared across changes.
 RNG_SEED = 0
 
 # The upstream example's parameters. Keep in step with brunel_alpha_ref.py.

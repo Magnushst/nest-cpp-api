@@ -106,13 +106,14 @@ nu         = 1 / (t_ref + tau_m * ln(mu / (mu - theta)))
 
 gives 27.68 Hz with nothing fitted, against 28.54 Hz measured: 3.1% error.
 
-So this parameter set is **asynchronous regular**, not the asynchronous irregular
-state usually quoted for Brunel networks. Neurons are close to independent yet
-fire close to periodically. That is a property of the upstream example's
-parameters and not of the translation, since the Python original produces the
-identical spikes. It is written down here because a reference implementation
-should state the regime it is in rather than let a reader assume the familiar
-one.
+So this parameter set is **asynchronous regular**. Neurons are close to
+independent yet fire close to periodically. That is a property of the upstream
+example's parameters and not of the translation, since the Python original
+produces the identical spikes. It is written down here because a reference
+implementation should state the regime it is in rather than let a reader assume
+the asynchronous irregular one that Brunel networks are usually associated with.
+Where `g` = 5, `eta` = 2 sits on Brunel's own phase diagram is a separate
+question, and this repository has not checked it.
 
 ## Source
 

@@ -101,16 +101,18 @@ alone and fires at the rate a noiseless leaky integrate and fire neuron would,
 `nu = 1 / (t_ref + tau_m * ln(mu / (mu - theta)))`. Solving the two together
 gives **27.68 Hz at mu = 1.22 theta**, against 28.54 Hz measured: **3.1% error**.
 
-So the network is **asynchronous but regular**, not the asynchronous irregular
-state usually quoted for Brunel networks. Neurons are nearly independent
-(correlation 0.007) yet fire nearly periodically (CV 0.19), because at `g = 5`
-and `eta = 2` the mean input sits a fifth above threshold. The close agreement
-between the closed form rate and the simulation is the confirmation.
+So these parameters give an **asynchronous but regular** network. Neurons are
+nearly independent (correlation 0.007) yet fire nearly periodically (CV 0.19),
+because at `g = 5` and `eta = 2` the mean input sits a fifth above threshold. The
+close agreement between the closed form rate and the simulation is the
+confirmation.
 
 This is a property of the upstream example's parameters, not of the translation:
 the Python original produces the identical spikes. It is recorded here because a
 reference implementation should say what state it is in rather than leave the
-reader to assume the familiar one.
+reader to assume the asynchronous irregular one that Brunel networks are usually
+associated with. Where this point sits on Brunel's own phase diagram in `(g,
+eta)` is a separate question that this repository has not checked.
 
 ## What the interface changes
 
@@ -165,15 +167,15 @@ All the work is inside `libnestkernel.a`. The driver issues about a dozen calls
 and then waits, so the driver's own compiler flags are irrelevant to runtime.
 The one lever the driver actually holds is the thread count, and it is worth
 having: `brunel/scaling.sh`, on six performance cores of an Intel Core Ultra
-7 155H under `taskset -c 0,1,3,6,8,10`, three repeats, median of NEST's own
-timers:
+7 155H under `taskset -c 0,1,3,6,8,10`. One warm-up run is discarded and the
+minimum of three timed runs is reported, from NEST's own timers:
 
-| Threads | Build (s) | Simulate (s) | Simulate range | Speedup | Excitatory rate |
+| Threads | Build (s) | Simulate (s) | Speedup | Efficiency | Excitatory rate |
 | --- | --- | --- | --- | --- | --- |
-| 1 | 1.62 | 14.53 | 14.03 to 16.78 | 1.00 | 28.54 Hz |
-| 2 | 0.94 | 6.90 | 6.88 to 7.13 | 2.11 | 28.40 Hz |
-| 4 | 0.56 | 4.09 | 3.59 to 4.15 | 3.55 | 28.86 Hz |
-| 6 | 0.47 | 3.14 | 2.81 to 3.31 | 4.63 | 28.66 Hz |
+| 1 | 1.22 | 11.58 | 1.00 | 100% | 28.54 Hz |
+| 2 | 0.82 | 5.87 | 1.97 | 99% | 28.40 Hz |
+| 4 | 0.49 | 3.47 | 3.34 | 83% | 28.86 Hz |
+| 6 | 0.39 | 2.54 | 4.56 | 76% | 28.66 Hz |
 
 Two caveats, both real:
 

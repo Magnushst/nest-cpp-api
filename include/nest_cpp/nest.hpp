@@ -383,9 +383,41 @@ public:
     nest::init_nest( &argc_, &argv );
   }
 
+  /**
+   * Shut the kernel and MPI down with an explicit exit code.
+   *
+   * Call this from @c main when the program has an exit status worth reporting.
+   * Calling it more than once, or after the destructor has run, is not allowed;
+   * the destructor checks and does nothing if this has already run.
+   */
+  void
+  shutdown( const int exitcode )
+  {
+    if ( not down_ )
+    {
+      down_ = true;
+      nest::shutdown_nest( exitcode );
+    }
+  }
+
+  /**
+   * Backstop shutdown.
+   *
+   * Reached on ordinary scope exit and during stack unwinding alike, which is
+   * the point of the type. It reports success, because a destructor has no way
+   * to know otherwise; a program that cares should call @ref shutdown itself.
+   * It swallows any exception, because throwing from a destructor during
+   * unwinding calls std::terminate.
+   */
   ~Kernel()
   {
-    nest::shutdown_nest( 0 );
+    try
+    {
+      shutdown( 0 );
+    }
+    catch ( ... ) // NOLINT: a destructor must not propagate
+    {
+    }
   }
 
   Kernel( const Kernel& ) = delete;
@@ -415,6 +447,7 @@ private:
   std::vector< std::string > args_;
   std::vector< char* > argv_;
   int argc_ { 0 };
+  bool down_ { false };
 };
 
 /**

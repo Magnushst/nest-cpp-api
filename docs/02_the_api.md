@@ -26,21 +26,33 @@ model in a sibling directory extends the interface by exactly what it needs, and
 the check for that model pins the extension. The items already known to be
 needed next are listed at the end.
 
-## The seven decisions, each answering an audit finding
+## The decisions, each answering an audit finding
 
-The findings are numbered as in [01_state_of_the_kernel.md](01_state_of_the_kernel.md).
+Seven decisions against the seven surprises in the audit. The findings are
+numbered as in [01_state_of_the_kernel.md](01_state_of_the_kernel.md); the last
+decision answers two of them at once, which is why the summary table in the
+[README](../README.md) has eight rows against seven headings here.
 
 ### 1. `Kernel` is a scoped object (finding 7)
 
 ```cpp
-const nestpp::Kernel kernel;   // init_nest here
+nestpp::Kernel kernel;   // init_nest here
 kernel.reset();
-...                            // shutdown_nest when this scope ends, on any path
+...
+kernel.shutdown( 0 );    // explicit, with a real exit code
+                         // and the destructor as the backstop for paths that
+                         // do not reach it, including an exception unwinding
 ```
 
 Non copyable and non movable, because there is one kernel per process. It owns
 the `argv` storage that `init_nest` needs, including the null terminator OpenMPI
 requires.
+
+The destructor is a backstop rather than the normal route. It reports success,
+because a destructor cannot know otherwise, and it swallows any exception,
+because throwing out of a destructor during unwinding calls `std::terminate`. A
+program with a meaningful exit status calls `shutdown` itself; calling it twice
+is harmless.
 
 ### 2. `create` takes parameters (finding 3)
 

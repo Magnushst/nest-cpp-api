@@ -76,7 +76,7 @@ Excitatory rate   : 28.54 Hz
 Inhibitory rate   : 28.62 Hz
 ```
 
-The run takes about fifteen seconds at one thread and about three at six, on a
+The run takes about twelve seconds at one thread and under three at six, on a
 recent laptop core.
 
 ## Check that all three agree
@@ -117,9 +117,11 @@ up and a silently different simulation.
 brunel/scaling.sh [scratch-dir]
 ```
 
-Sweeps `--threads` over 1, 2, 4 and 6, three repeats each, under
-`taskset -c 0,1,3,6,8,10`, and prints NEST's own build and simulate timers.
-Override with `THREADS`, `REPEATS` and `MASK`.
+Sweeps `--threads` over 1, 2, 4 and 6 under `taskset -c 0,1,3,6,8,10`, printing
+NEST's own build and simulate timers. Each thread count gets one discarded
+warm-up run followed by three timed ones, and the summary reports the minimum,
+which is the run least contaminated by other work on the machine. Override with
+`THREADS`, `REPEATS` and `MASK`.
 
 **More than one thread changes the spikes.** Thread count decides which virtual
 process owns which node and therefore which random stream it draws from. The

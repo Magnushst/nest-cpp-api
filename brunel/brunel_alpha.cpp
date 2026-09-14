@@ -112,8 +112,10 @@ main( int argc, char* argv[] )
   const Options opts = parse_options( argc, argv );
 
   // The kernel comes up here and goes down when this scope ends, on every path
-  // including the one an exception takes.
-  const nestpp::Kernel kernel;
+  // including the one an exception takes. The explicit shutdown at the end
+  // reports the exit status; the destructor is the backstop for the paths that
+  // do not reach it.
+  nestpp::Kernel kernel;
   kernel.reset();
 
   // --- parameters, verbatim from the Python example ----------------------
@@ -231,5 +233,6 @@ main( int argc, char* argv[] )
   std::printf( "Building time     : %.3f s (create %.3f, connect %.3f)\n", t_create + t_connect, t_create, t_connect );
   std::printf( "Simulation time   : %.3f s\n", t_simulate );
 
+  kernel.shutdown( 0 );
   return 0;
 }
