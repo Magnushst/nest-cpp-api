@@ -11,10 +11,10 @@
  *  collections that are values, parameters written where they are used, and
  *  results that come back as the type you asked for.
  *
- *  Scope is deliberately the Brunel network and nothing else. Every entry point
- *  here exists because brunel/brunel_alpha.cpp needs it. See docs/02_the_api.md
- *  for what is missing and why that is the right size. More models are being
- *  added beside it, and the interface grows with them.
+ *  Scope is what the models in this repository need, and nothing speculative.
+ *  Every entry point here exists because a model directory uses it, and the
+ *  check for that model pins its behaviour. See docs/02_the_api.md for what is
+ *  missing and why that is the right size.
  *
  *  This header is not part of NEST and does not modify NEST.
  *
@@ -36,6 +36,7 @@
 #include "nest_names.h"
 #include "node_collection.h"
 #include "numerics.h"
+#include "parameter.h"
 
 namespace nestpp
 {
@@ -134,6 +135,115 @@ get( const Dictionary& dict, const std::string& key )
 }
 
 /**
+ * A value the kernel draws per node or per connection, rather than a constant.
+ *
+ * This is the kernel's @c Parameter: an object that yields a value when the
+ * kernel asks it for one, using the random stream of the virtual process that
+ * owns the node. Assigning one to @c V_m gives every neuron its own initial
+ * membrane potential; putting one in a synapse specification gives every
+ * connection its own weight or delay.
+ *
+ * It converts implicitly to the kernel's dictionary value type, so it can be
+ * written straight into a @ref Params entry.
+ */
+class Parameter
+{
+public:
+  Parameter() = default;
+
+  explicit Parameter( nest::ParameterPTR ptr )
+    : ptr_( std::move( ptr ) )
+  {
+  }
+
+  const nest::ParameterPTR&
+  ptr() const
+  {
+    return ptr_;
+  }
+
+  operator any_type() const // NOLINT: implicit by design, so it can be a Params value
+  {
+    return ptr_;
+  }
+
+private:
+  nest::ParameterPTR ptr_;
+};
+
+/**
+ * Distributions, named as PyNEST names them in @c nest.random.
+ *
+ * Each builds a kernel @c Parameter through @c create_parameter with the same
+ * type name and the same specification dictionary that PyNEST passes, so the
+ * kernel draws the same values in the same order.
+ */
+namespace random
+{
+
+inline Parameter
+normal( const double mean = 0.0, const double std = 1.0 )
+{
+  Dictionary specs;
+  specs[ "mean" ] = mean;
+  specs[ "std" ] = std;
+  return Parameter( nest::create_parameter( "normal", specs ) );
+}
+
+inline Parameter
+lognormal( const double mean = 0.0, const double std = 1.0 )
+{
+  Dictionary specs;
+  specs[ "mean" ] = mean;
+  specs[ "std" ] = std;
+  return Parameter( nest::create_parameter( "lognormal", specs ) );
+}
+
+inline Parameter
+uniform( const double min = 0.0, const double max = 1.0 )
+{
+  Dictionary specs;
+  specs[ "min" ] = min;
+  specs[ "max" ] = max;
+  return Parameter( nest::create_parameter( "uniform", specs ) );
+}
+
+inline Parameter
+exponential( const double beta = 1.0 )
+{
+  Dictionary specs;
+  specs[ "beta" ] = beta;
+  return Parameter( nest::create_parameter( "exponential", specs ) );
+}
+
+} // namespace random
+
+/**
+ * Operations on parameters, named as PyNEST names them in @c nest.math.
+ */
+namespace math
+{
+
+/**
+ * Redraw @p parameter until its value lies within [@p min, @p max].
+ *
+ * Both bounds are inclusive. The kernel gives up after 1000 redraws and throws.
+ * This is how the microcircuit keeps excitatory weights positive and delays at
+ * or above the resolution.
+ *
+ * @note @c redraw_parameter is declared in @c nestkernel/parameter.h and not in
+ * @c nestkernel/nest.h, so a caller who includes only the API header cannot
+ * reach it.
+ */
+inline Parameter
+redraw( const Parameter& parameter, const double min, const double max )
+{
+  return Parameter( nest::redraw_parameter( parameter.ptr(), min, max ) );
+}
+
+} // namespace math
+
+/**
  * An ordered set of named parameters, written where it is used.
  *
  * Values are held in an owned map rather than in a @ref Dictionary, because
@@ -198,15 +308,15 @@ struct ConnSpec : Params
 {
   ConnSpec()
   {
-    set( "rule", std::string( "all_to_all" ) );
+    set( names::rule, std::string( "all_to_all" ) );
   }
 
   ConnSpec( Params params )
     : Params( std::move( params ) )
   {
-    if ( not has( "rule" ) )
+    if ( not has( names::rule ) )
     {
-      set( "rule", std::string( "all_to_all" ) );
+      set( names::rule, std::string( "all_to_all" ) );
     }
   }
 
@@ -220,7 +330,7 @@ struct ConnSpec : Params
   one_to_one()
   {
     ConnSpec spec;
-    spec.set( "rule", std::string( "one_to_one" ) );
+    spec.set( names::rule, std::string( "one_to_one" ) );
     return spec;
   }
 
@@ -228,8 +338,22 @@ struct ConnSpec : Params
   fixed_indegree( const long indegree )
   {
     ConnSpec spec;
-    spec.set( "rule", std::string( "fixed_indegree" ) );
-    spec.set( "indegree", indegree );
+    spec.set( names::rule, std::string( "fixed_indegree" ) );
+    spec.set( names::indegree, indegree );
+    return spec;
+  }
+
+  /**
+   * @p n connections drawn at random from all source-target pairs, sources and
+   * targets both drawn with replacement. This is how the microcircuit realises
+   * its connection probabilities.
+   */
+  static ConnSpec
+  fixed_total_number( const long n )
+  {
+    ConnSpec spec;
+    spec.set( names::rule, std::string( "fixed_total_number" ) );
+    spec.set( names::N, n );
     return spec;
   }
 };
@@ -246,12 +370,12 @@ struct SynSpec : Params
 
   SynSpec( const char* synapse_model )
   {
-    set( "synapse_model", std::string( synapse_model ) );
+    set( names::synapse_model, std::string( synapse_model ) );
   }
 
   SynSpec( std::string synapse_model )
   {
-    set( "synapse_model", std::move( synapse_model ) );
+    set( names::synapse_model, std::move( synapse_model ) );
   }
 
   SynSpec( Params params )
@@ -328,11 +452,41 @@ public:
     return slice( 0, n );
   }
 
+  /**
+   * Node @p i on its own, as `nc[i]` in Python. Still a collection, because
+   * that is what every kernel call takes.
+   */
+  NodeCollection
+  operator[]( const long i ) const
+  {
+    return slice( i, i + 1 );
+  }
+
   void
   set( const Params& params ) const
   {
     // set_nc_status takes a non-const reference, so the vector must be named.
     std::vector< Dictionary > per_node { params.dict() };
+    nest::set_nc_status( handle_, per_node );
+  }
+
+  /**
+   * Give each node its own parameters. The number of entries must equal the
+   * size of the collection, as it must in PyNEST.
+   */
+  void
+  set( const std::vector< Params >& params ) const
+  {
+    if ( params.size() != size() )
+    {
+      throw nest::DimensionMismatch( static_cast< int >( size() ), static_cast< int >( params.size() ) );
+    }
+    std::vector< Dictionary > per_node;
+    per_node.reserve( params.size() );
+    for ( const Params& p : params )
+    {
+      per_node.push_back( p.dict() );
+    }
     nest::set_nc_status( handle_, per_node );
   }
 
@@ -497,6 +651,38 @@ inline void
 simulate( const double t )
 {
   nest::simulate( t );
+}
+
+/**
+ * Build the connection infrastructure and open the recording files.
+ *
+ * @c simulate does this itself. Calling it explicitly separates the cost of
+ * building the presynaptic side of the connections from the cost of propagating
+ * the network state, which is why the microcircuit does so at the end of its
+ * connection phase. Each @ref prepare must be matched by a @ref cleanup.
+ */
+inline void
+prepare()
+{
+  nest::prepare();
+}
+
+/**
+ * Simulate for @p t milliseconds between a @ref prepare and a @ref cleanup.
+ */
+inline void
+run( const double t )
+{
+  nest::run( t );
+}
+
+/**
+ * Close what @ref prepare opened.
+ */
+inline void
+cleanup()
+{
+  nest::cleanup();
 }
 
 /**
