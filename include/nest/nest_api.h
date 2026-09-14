@@ -278,8 +278,8 @@ inline Parameter
 normal( const double mean = 0.0, const double std = 1.0 )
 {
   Dictionary specs;
-  specs[ "mean" ] = mean;
-  specs[ "std" ] = std;
+  specs[ names::mean ] = mean;
+  specs[ names::std ] = std;
   return Parameter( nest::create_parameter( "normal", specs ) );
 }
 
@@ -287,8 +287,8 @@ inline Parameter
 lognormal( const double mean = 0.0, const double std = 1.0 )
 {
   Dictionary specs;
-  specs[ "mean" ] = mean;
-  specs[ "std" ] = std;
+  specs[ names::mean ] = mean;
+  specs[ names::std ] = std;
   return Parameter( nest::create_parameter( "lognormal", specs ) );
 }
 
@@ -296,8 +296,8 @@ inline Parameter
 uniform( const double min = 0.0, const double max = 1.0 )
 {
   Dictionary specs;
-  specs[ "min" ] = min;
-  specs[ "max" ] = max;
+  specs[ names::min ] = min;
+  specs[ names::max ] = max;
   return Parameter( nest::create_parameter( "uniform", specs ) );
 }
 
@@ -305,7 +305,7 @@ inline Parameter
 exponential( const double beta = 1.0 )
 {
   Dictionary specs;
-  specs[ "beta" ] = beta;
+  specs[ names::beta ] = beta;
   return Parameter( nest::create_parameter( "exponential", specs ) );
 }
 
@@ -393,7 +393,7 @@ inline Parameter
 compare( const Parameter& lhs, const Parameter& rhs, const Comparator comparator )
 {
   Dictionary d;
-  d[ "comparator" ] = static_cast< long >( comparator );
+  d[ names::comparator ] = static_cast< long >( comparator );
   return Parameter( nest::compare_parameter( lhs.ptr(), rhs.ptr(), d ) );
 }
 

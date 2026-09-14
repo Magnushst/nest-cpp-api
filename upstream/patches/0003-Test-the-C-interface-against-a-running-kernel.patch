@@ -1,6 +1,6 @@
-From 74fb966efb834f7183ac625b3e4a92950d7f4350 Mon Sep 17 00:00:00 2001
+From b10725f0cdebb4fd505b846949ad16b19efd7551 Mon Sep 17 00:00:00 2001
 From: Magnushst <magnus.henrik@hotmail.com>
-Date: Mon, 14 Sep 2026 18:33:35 +0200
+Date: Mon, 14 Sep 2026 18:38:55 +0200
 Subject: [PATCH 3/5] Test the C++ interface against a running kernel
 
 run_nest_api_test creates nodes, reads and writes their status, builds

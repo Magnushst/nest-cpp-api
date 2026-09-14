@@ -1,6 +1,6 @@
-From 3952b6a7c1898dd3ae0f9a40351e9abfefd224bd Mon Sep 17 00:00:00 2001
+From 5def4ec9c37d27501b10c9c5cd584979d5cb137d Mon Sep 17 00:00:00 2001
 From: Magnushst <magnus.henrik@hotmail.com>
-Date: Mon, 14 Sep 2026 18:33:35 +0200
+Date: Mon, 14 Sep 2026 18:38:55 +0200
 Subject: [PATCH 1/5] Install the kernel libraries, so C++ programs can link
  against NEST
 

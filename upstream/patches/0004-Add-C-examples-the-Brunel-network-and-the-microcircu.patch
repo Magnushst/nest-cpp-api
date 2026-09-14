@@ -1,6 +1,6 @@
-From aea44f127d99e7d140f4b7a1d22b51807a4c6bb5 Mon Sep 17 00:00:00 2001
+From af9bdd04c9f99c4c88153aafde22902d5543cc2a Mon Sep 17 00:00:00 2001
 From: Magnushst <magnus.henrik@hotmail.com>
-Date: Mon, 14 Sep 2026 18:33:35 +0200
+Date: Mon, 14 Sep 2026 18:38:55 +0200
 Subject: [PATCH 4/5] Add C++ examples: the Brunel network and the microcircuit
 
 Two of NEST's own PyNEST examples, written in C++ against nest_api.h and

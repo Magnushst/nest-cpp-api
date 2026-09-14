@@ -1,6 +1,6 @@
-From afd11ccf7ff5186d96d072d1f464f50ce17021d7 Mon Sep 17 00:00:00 2001
+From 4277a0a1d103796bef9c96d9662344b29033ddd2 Mon Sep 17 00:00:00 2001
 From: Magnushst <magnus.henrik@hotmail.com>
-Date: Mon, 14 Sep 2026 18:33:35 +0200
+Date: Mon, 14 Sep 2026 18:38:55 +0200
 Subject: [PATCH 2/5] Add nest_api.h, a C++ interface to the kernel API
 
 nest.h declares the kernel API as free functions, and dictionary.h calls
@@ -32,7 +32,7 @@ index 35d1a4327..28376c162 100644
        growth_curve_factory.h
 diff --git a/nestkernel/nest_api.h b/nestkernel/nest_api.h
 new file mode 100644
-index 000000000..d47d8f17b
+index 000000000..0bb23bfdd
 --- /dev/null
 +++ b/nestkernel/nest_api.h
 @@ -0,0 +1,1172 @@
@@ -333,8 +333,8 @@ index 000000000..d47d8f17b
 +normal( const double mean = 0.0, const double std = 1.0 )
 +{
 +  Dictionary specs;
-+  specs[ "mean" ] = mean;
-+  specs[ "std" ] = std;
++  specs[ names::mean ] = mean;
++  specs[ names::std ] = std;
 +  return Parameter( nest::create_parameter( "normal", specs ) );
 +}
 +
@@ -342,8 +342,8 @@ index 000000000..d47d8f17b
 +lognormal( const double mean = 0.0, const double std = 1.0 )
 +{
 +  Dictionary specs;
-+  specs[ "mean" ] = mean;
-+  specs[ "std" ] = std;
++  specs[ names::mean ] = mean;
++  specs[ names::std ] = std;
 +  return Parameter( nest::create_parameter( "lognormal", specs ) );
 +}
 +
@@ -351,8 +351,8 @@ index 000000000..d47d8f17b
 +uniform( const double min = 0.0, const double max = 1.0 )
 +{
 +  Dictionary specs;
-+  specs[ "min" ] = min;
-+  specs[ "max" ] = max;
++  specs[ names::min ] = min;
++  specs[ names::max ] = max;
 +  return Parameter( nest::create_parameter( "uniform", specs ) );
 +}
 +
@@ -360,7 +360,7 @@ index 000000000..d47d8f17b
 +exponential( const double beta = 1.0 )
 +{
 +  Dictionary specs;
-+  specs[ "beta" ] = beta;
++  specs[ names::beta ] = beta;
 +  return Parameter( nest::create_parameter( "exponential", specs ) );
 +}
 +
@@ -448,7 +448,7 @@ index 000000000..d47d8f17b
 +compare( const Parameter& lhs, const Parameter& rhs, const Comparator comparator )
 +{
 +  Dictionary d;
-+  d[ "comparator" ] = static_cast< long >( comparator );
++  d[ names::comparator ] = static_cast< long >( comparator );
 +  return Parameter( nest::compare_parameter( lhs.ptr(), rhs.ptr(), d ) );
 +}
 +
