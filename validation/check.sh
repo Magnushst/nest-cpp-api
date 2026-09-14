@@ -69,6 +69,15 @@ done
 counts=$(for name in raw hpp py; do grep -h "Number of synapses\|events" "${WORK}/${name}.out" | awk -F': *' '{print $2}' | tr '\n' ' '; echo; done | sort -u | wc -l)
 if [[ "${counts}" -eq 1 ]]; then echo "   all three agree"; else echo "   COUNTS DISAGREE"; status=1; fi
 
+echo "== network state"
+# Identity to the Python original says the network was built the same way. It
+# says nothing about whether the network behaves as the theory says. state_check
+# asks that separately, from the spikes alone, and checks its own estimators
+# against Poisson input first.
+"${PYTHON}" "${HERE}/validation/state_check.py" --selftest | sed 's/^/   /' || status=1
+"${PYTHON}" "${HERE}/validation/state_check.py" \
+  "${WORK}"/brunel-hpp-ex-*.dat "${WORK}"/brunel-hpp-in-*.dat | sed 's/^/   /' || status=1
+
 echo
 if [[ "${status}" -eq 0 ]]; then echo "PASS  (work dir ${WORK})"; else echo "FAIL  (work dir ${WORK})"; fi
 exit "${status}"
