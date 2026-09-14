@@ -347,7 +347,7 @@ main( int argc, char* argv[] )
     return 0;
   }
 
-  std::printf( "Microcircuit simulation (C++, nest_cpp interface)\n" );
+  std::printf( "Microcircuit simulation (C++, nest::api interface)\n" );
   // On more than one rank each recorder counts only the spikes of the neurons
   // that live on this rank, so the counts below are rank 0's share rather than
   // the total. The spike files hold all of it.

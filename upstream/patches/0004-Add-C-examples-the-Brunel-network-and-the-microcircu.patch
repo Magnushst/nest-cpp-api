@@ -1,0 +1,1049 @@
+From aea44f127d99e7d140f4b7a1d22b51807a4c6bb5 Mon Sep 17 00:00:00 2001
+From: Magnushst <magnus.henrik@hotmail.com>
+Date: Mon, 14 Sep 2026 18:33:35 +0200
+Subject: [PATCH 4/5] Add C++ examples: the Brunel network and the microcircuit
+
+Two of NEST's own PyNEST examples, written in C++ against nest_api.h and
+building against an installed NEST through nest-config. Both produce spikes
+identical to the Python they were translated from; the microcircuit reproduces
+the reference data committed with the PyNEST version. Until now there was no C++
+example anywhere in the tree.
+---
+ examples/cpp/CMakeLists.txt        |  57 +++++
+ examples/cpp/README.md             |  54 ++++
+ examples/cpp/brunel_alpha.cpp      | 254 +++++++++++++++++++
+ examples/cpp/microcircuit.cpp      | 392 +++++++++++++++++++++++++++++
+ examples/cpp/microcircuit_params.h | 236 +++++++++++++++++
+ 5 files changed, 993 insertions(+)
+ create mode 100644 examples/cpp/CMakeLists.txt
+ create mode 100644 examples/cpp/README.md
+ create mode 100644 examples/cpp/brunel_alpha.cpp
+ create mode 100644 examples/cpp/microcircuit.cpp
+ create mode 100644 examples/cpp/microcircuit_params.h
+
+diff --git a/examples/cpp/CMakeLists.txt b/examples/cpp/CMakeLists.txt
+new file mode 100644
+index 000000000..ec88ad3dd
+--- /dev/null
++++ b/examples/cpp/CMakeLists.txt
+@@ -0,0 +1,57 @@
++# examples/cpp/CMakeLists.txt
++#
++# This file is part of NEST.
++#
++# Copyright (C) 2004 The NEST Initiative
++#
++# NEST is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 2 of the License, or
++# (at your option) any later version.
++#
++# NEST is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with NEST.  If not, see <http://www.gnu.org/licenses/>.
++
++# These examples build against an *installed* NEST rather than as part of the
++# NEST build, because that is the case they are meant to demonstrate. Configure
++# them separately:
++#
++#   cmake -B build -S examples/cpp -DNEST_CONFIG=/path/to/bin/nest-config
++#   cmake --build build
++
++cmake_minimum_required( VERSION 3.19 )
++project( nest_api_examples CXX )
++
++find_program( NEST_CONFIG nest-config REQUIRED
++  DOC "Path to the nest-config of the NEST installation to build against" )
++
++execute_process( COMMAND ${NEST_CONFIG} --includes
++  OUTPUT_VARIABLE NEST_INCLUDES OUTPUT_STRIP_TRAILING_WHITESPACE )
++execute_process( COMMAND ${NEST_CONFIG} --kernel-libs
++  OUTPUT_VARIABLE NEST_KERNEL_LIBS OUTPUT_STRIP_TRAILING_WHITESPACE )
++execute_process( COMMAND ${NEST_CONFIG} --cflags
++  OUTPUT_VARIABLE NEST_CFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE )
++
++if ( NEST_KERNEL_LIBS STREQUAL "" )
++  message( FATAL_ERROR
++    "${NEST_CONFIG} has no --kernel-libs. That NEST is older than the change "
++    "that installs the kernel libraries, and cannot be linked against." )
++endif ()
++
++separate_arguments( NEST_INCLUDES NATIVE_COMMAND "${NEST_INCLUDES}" )
++separate_arguments( NEST_KERNEL_LIBS NATIVE_COMMAND "${NEST_KERNEL_LIBS}" )
++separate_arguments( NEST_CFLAGS NATIVE_COMMAND "${NEST_CFLAGS}" )
++
++find_package( OpenMP REQUIRED )
++
++foreach ( example brunel_alpha microcircuit )
++  add_executable( ${example} ${example}.cpp )
++  target_compile_options( ${example} PRIVATE ${NEST_CFLAGS} )
++  target_include_directories( ${example} PRIVATE ${NEST_INCLUDES} ${CMAKE_CURRENT_SOURCE_DIR} )
++  target_link_libraries( ${example} ${NEST_KERNEL_LIBS} OpenMP::OpenMP_CXX )
++endforeach ()
+diff --git a/examples/cpp/README.md b/examples/cpp/README.md
+new file mode 100644
+index 000000000..148bf8ec5
+--- /dev/null
++++ b/examples/cpp/README.md
+@@ -0,0 +1,54 @@
++# C++ examples
++
++Two networks driven from C++ through `nest_api.h`, the interface declared in
++`nestkernel/nest_api.h`. They are the C++ counterparts of
++`pynest/examples/brunel_alpha_nest.py` and of the PyNEST microcircuit, and they
++produce the same spikes as those, down to the byte.
++
++| File | What it is |
++| --- | --- |
++| `brunel_alpha.cpp` | The balanced random network of Brunel (2000). |
++| `microcircuit.cpp` | The cortical microcircuit of Potjans and Diesmann (2014). |
++| `microcircuit_params.h` | The microcircuit's parameters and the network it derives from them. |
++
++## Building
++
++These build against an **installed** NEST, which is the case they exist to
++demonstrate. NEST must be installed with the kernel libraries, which
++`nest-config --kernel-libs` reports:
++
++```sh
++cmake -B build -S examples/cpp -DNEST_CONFIG=<prefix>/bin/nest-config
++cmake --build build
++```
++
++By hand, the whole of it is:
++
++```sh
++g++ -std=c++20 -fopenmp $(nest-config --includes) -c brunel_alpha.cpp -o brunel_alpha.o
++g++ -fopenmp -o brunel_alpha brunel_alpha.o $(nest-config --kernel-libs)
++```
++
++## Running
++
++Both write spike files into the current directory, so run them somewhere
++disposable.
++
++```sh
++./brunel_alpha --quiet
++./microcircuit --quiet --data-path=.
++```
++
++`brunel_alpha` takes `--threads=N`, `--seed=N` and `--quiet`. `microcircuit`
++takes those plus `--n-scaling=F`, `--k-scaling=F`, `--presim=T`, `--sim=T`,
++`--data-path=DIR` and `--derived`, which prints the derived network and exits.
++Every default reproduces the behaviour of the Python example.
++
++Both are rank agnostic and run under `mpirun` unchanged.
++
++## Why the spikes are identical
++
++Both examples make the same kernel calls in the same order as the Python they
++were translated from, so the kernel draws the same random numbers in the same
++sequence. That is checked rather than assumed: the microcircuit reproduces the
++spike files committed in `reference_data/` alongside the PyNEST version.
+diff --git a/examples/cpp/brunel_alpha.cpp b/examples/cpp/brunel_alpha.cpp
+new file mode 100644
+index 000000000..f6961de9c
+--- /dev/null
++++ b/examples/cpp/brunel_alpha.cpp
+@@ -0,0 +1,254 @@
++/*
++ *  brunel_alpha.cpp
++ *
++ *  This file is part of NEST.
++ *
++ *  Copyright (C) 2004 The NEST Initiative
++ *
++ *  NEST is free software: you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation, either version 2 of the License, or
++ *  (at your option) any later version.
++ *
++ *  NEST is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with NEST.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++/*
++ *  The Brunel (2000) balanced random network, written against the C++
++ *  interface in nest_api.h.
++ *
++ *  The C++ counterpart of pynest/examples/brunel_alpha_nest.py. Both build the
++ *  same network in the same order, so they draw the same random numbers and
++ *  produce the same spikes, byte for byte.
++ *
++ *  Options (all default to the upstream example's behaviour):
++ *    --threads=N   OpenMP threads, default 1
++ *    --seed=N      kernel RNG seed, default is NEST's own (143202461)
++ *    --quiet       do not print simulation progress
++ */
++
++#include <cmath>
++#include <cstdio>
++#include <cstdlib>
++#include <string_view>
++
++#include "nest_api.h"
++
++namespace
++{
++
++namespace api = nest::api;
++namespace names = nest::names;
++using numerics::e;
++
++/**
++ * Lower branch of the Lambert W function, W_{-1}(x), for x in (-1/e, 0), by
++ * Halley iteration. The Python example takes this from SciPy; NEST has no
++ * Lambert W of its own. At the single argument used here the result is bit
++ * identical to scipy.special.lambertw(x, k=-1): -5.4003416797011869.
++ */
++double
++lambert_wm1( const double x )
++{
++  double w = std::log( -x ) - std::log( -std::log( -x ) );
++
++  for ( int i = 0; i < 100; ++i )
++  {
++    const double ew = std::exp( w );
++    const double f = w * ew - x;
++    const double denom = ew * ( w + 1.0 ) - ( w + 2.0 ) * f / ( 2.0 * w + 2.0 );
++    const double dw = f / denom;
++    w -= dw;
++    if ( std::abs( dw ) < 1e-15 * ( 1.0 + std::abs( w ) ) )
++    {
++      break;
++    }
++  }
++  return w;
++}
++
++/**
++ * Peak of the postsynaptic potential produced by an alpha-shaped synaptic
++ * current of unit amplitude, in mV per pA. Dividing the wanted PSP amplitude by
++ * this gives the current amplitude to request.
++ */
++double
++compute_psp_norm( const double tau_mem, const double c_mem, const double tau_syn )
++{
++  const double a = tau_mem / tau_syn;
++  const double b = 1.0 / tau_syn - 1.0 / tau_mem;
++  const double t_max = 1.0 / b * ( -lambert_wm1( -std::exp( -1.0 / a ) / a ) - 1.0 / a );
++
++  return e / ( tau_syn * c_mem * b )
++    * ( ( std::exp( -t_max / tau_mem ) - std::exp( -t_max / tau_syn ) ) / b - t_max * std::exp( -t_max / tau_syn ) );
++}
++
++struct Options
++{
++  long threads { 1 };
++  long seed { 0 };  //!< 0 means "leave the kernel's own default alone"
++  bool print_time { true };
++};
++
++Options
++parse_options( const int argc, char* const argv[] )
++{
++  Options opts;
++  for ( int i = 1; i < argc; ++i )
++  {
++    const std::string_view arg { argv[ i ] };
++    if ( arg.starts_with( "--threads=" ) )
++    {
++      opts.threads = std::atol( argv[ i ] + 10 );
++    }
++    else if ( arg.starts_with( "--seed=" ) )
++    {
++      opts.seed = std::atol( argv[ i ] + 7 );
++    }
++    else if ( arg == "--quiet" )
++    {
++      opts.print_time = false;
++    }
++  }
++  return opts;
++}
++
++}  // namespace
++
++int
++main( int argc, char* argv[] )
++{
++  const Options opts = parse_options( argc, argv );
++
++  // The kernel comes up here and goes down when this scope ends, on every path
++  // including the one an exception takes. The explicit shutdown at the end
++  // reports the exit status; the destructor is the backstop for the paths that
++  // do not reach it.
++  api::Kernel kernel;
++  kernel.reset();
++
++  // --- parameters, verbatim from the Python example ----------------------
++  const double dt = 0.1;          // resolution in ms
++  const double simtime = 1000.0;  // simulated biological time in ms
++  const double delay = 1.5;       // synaptic delay in ms
++
++  const double g = 5.0;        // ratio of inhibitory to excitatory weight
++  const double eta = 2.0;      // external rate relative to threshold rate
++  const double epsilon = 0.1;  // connection probability
++
++  const long order = 2500;
++  const long NE = 4 * order;
++  const long NI = 1 * order;
++  const long N_rec = 50;
++
++  const long CE = static_cast< long >( epsilon * static_cast< double >( NE ) );
++  const long CI = static_cast< long >( epsilon * static_cast< double >( NI ) );
++
++  const double tau_syn = 0.5;   // ms
++  const double tau_mem = 20.0;  // ms
++  const double c_mem = 250.0;   // pF
++  const double theta = 20.0;    // mV
++
++  const double J = 0.1;  // postsynaptic potential amplitude in mV
++  const double J_unit = compute_psp_norm( tau_mem, c_mem, tau_syn );
++  const double J_ex = J / J_unit;
++  const double J_in = -g * J_ex;
++
++  const double nu_th = ( theta * c_mem ) / ( J_ex * static_cast< double >( CE ) * e * tau_mem * tau_syn );
++  const double nu_ex = eta * nu_th;
++  const double p_rate = 1000.0 * nu_ex * static_cast< double >( CE );
++
++  std::printf( "J_unit = %.17g\nJ_ex   = %.17g\np_rate = %.17g\n", J_unit, J_ex, p_rate );
++
++  api::Params kernel_params { { names::resolution, dt },
++    { names::print_time, opts.print_time },
++    { names::overwrite_files, true },
++    { names::local_num_threads, opts.threads } };
++  if ( opts.seed > 0 )
++  {
++    kernel_params.set( names::rng_seed, opts.seed );
++  }
++  kernel.set( kernel_params );
++
++  std::printf( "threads = %ld\nrng_seed = %ld\n",
++    api::get< long >( kernel.status(), names::local_num_threads ),
++    api::get< long >( kernel.status(), names::rng_seed ) );
++
++  const api::Params neuron_params { { names::C_m, c_mem },
++    { names::tau_m, tau_mem },
++    { names::tau_syn_ex, tau_syn },
++    { names::tau_syn_in, tau_syn },
++    { names::t_ref, 2.0 },
++    { names::E_L, 0.0 },
++    { names::V_reset, 0.0 },
++    { names::V_m, 0.0 },
++    { names::V_th, theta } };
++
++  std::printf( "Building network\n" );
++
++  const auto nodes_ex = api::create( "iaf_psc_alpha", NE, neuron_params );
++  const auto nodes_in = api::create( "iaf_psc_alpha", NI, neuron_params );
++  const auto noise = api::create( "poisson_generator", 1, { { names::rate, p_rate } } );
++  const auto espikes =
++    api::create( "spike_recorder", 1, { { names::label, "brunel-hpp-ex" }, { names::record_to, "ascii" } } );
++  const auto ispikes =
++    api::create( "spike_recorder", 1, { { names::label, "brunel-hpp-in" }, { names::record_to, "ascii" } } );
++
++  std::printf( "Connecting devices\n" );
++
++  api::copy_model( "static_synapse", "excitatory", { { names::weight, J_ex }, { names::delay, delay } } );
++  api::copy_model( "static_synapse", "inhibitory", { { names::weight, J_in }, { names::delay, delay } } );
++
++  api::connect( noise, nodes_ex, api::ConnSpec::all_to_all(), "excitatory" );
++  api::connect( noise, nodes_in, api::ConnSpec::all_to_all(), "excitatory" );
++
++  api::connect( nodes_ex.first( N_rec ), espikes, api::ConnSpec::all_to_all(), "excitatory" );
++  api::connect( nodes_in.first( N_rec ), ispikes, api::ConnSpec::all_to_all(), "excitatory" );
++
++  std::printf( "Connecting network\n" );
++
++  const auto all_nodes = nodes_ex + nodes_in;
++  api::connect( nodes_ex, all_nodes, api::ConnSpec::fixed_indegree( CE ), "excitatory" );
++  api::connect( nodes_in, all_nodes, api::ConnSpec::fixed_indegree( CI ), "inhibitory" );
++
++  std::printf( "Simulating\n" );
++  api::simulate( simtime );
++
++  // --- results -----------------------------------------------------------
++  const long events_ex = espikes.get< long >( names::n_events );
++  const long events_in = ispikes.get< long >( names::n_events );
++
++  const double rate_ex = static_cast< double >( events_ex ) / simtime * 1000.0 / static_cast< double >( N_rec );
++  const double rate_in = static_cast< double >( events_in ) / simtime * 1000.0 / static_cast< double >( N_rec );
++
++  const long num_synapses = api::get< long >( api::model_defaults( "excitatory" ), names::num_connections )
++    + api::get< long >( api::model_defaults( "inhibitory" ), names::num_connections );
++
++  // NEST instruments itself; read its own stopwatches rather than adding a
++  // clock of our own. The per-thread timers beside these (time_update and the
++  // rest) are only filled in a build configured with detailed timers.
++  const Dictionary kernel_final = kernel.status();
++  const double t_create = api::get< double >( kernel_final, names::time_construction_create );
++  const double t_connect = api::get< double >( kernel_final, names::time_construction_connect );
++  const double t_simulate = api::get< double >( kernel_final, names::time_simulate );
++
++  std::printf( "Brunel network simulation (C++, nest::api interface)\n" );
++  std::printf( "Number of neurons : %ld\n", NE + NI );
++  std::printf( "Number of synapses: %ld\n", num_synapses );
++  std::printf( "Excitatory events : %ld\n", events_ex );
++  std::printf( "Inhibitory events : %ld\n", events_in );
++  std::printf( "Excitatory rate   : %.2f Hz\n", rate_ex );
++  std::printf( "Inhibitory rate   : %.2f Hz\n", rate_in );
++  std::printf( "Building time     : %.3f s (create %.3f, connect %.3f)\n", t_create + t_connect, t_create, t_connect );
++  std::printf( "Simulation time   : %.3f s\n", t_simulate );
++
++  kernel.shutdown( 0 );
++  return 0;
++}
+diff --git a/examples/cpp/microcircuit.cpp b/examples/cpp/microcircuit.cpp
+new file mode 100644
+index 000000000..c2eb9753c
+--- /dev/null
++++ b/examples/cpp/microcircuit.cpp
+@@ -0,0 +1,392 @@
++/*
++ *  microcircuit.cpp
++ *
++ *  This file is part of NEST.
++ *
++ *  Copyright (C) 2004 The NEST Initiative
++ *
++ *  NEST is free software: you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation, either version 2 of the License, or
++ *  (at your option) any later version.
++ *
++ *  NEST is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with NEST.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++/*
++ *  The cortical microcircuit of Potjans and Diesmann (2014), written against
++ *  the C++ interface in nest_api.h.
++ *
++ *  The C++ counterpart of the PyNEST microcircuit. Both build the same network
++ *  in the same order with the same parameters, so they draw the same random
++ *  numbers and produce the same spikes: this program reproduces the files in
++ *  the PyNEST version's reference_data directory exactly.
++ *
++ *  The order of the calls below is not a matter of taste. Every create, every
++ *  set of a distributed parameter and every connect consumes random numbers, so
++ *  the sequence has to follow the PyNEST version's network.py statement for statement. The
++ *  comments name the method each block corresponds to.
++ *
++ *  Options (all default to the upstream example's behaviour):
++ *    --threads=N      OpenMP threads, default 4
++ *    --seed=N         kernel RNG seed, default 55
++ *    --n-scaling=F    factor on the population sizes, default 0.1
++ *    --k-scaling=F    factor on the indegrees, default 0.1
++ *    --presim=T       presimulation time in ms, default 500
++ *    --sim=T          simulation time in ms, default 1000
++ *    --data-path=DIR  where the spike files go, default the working directory
++ *    --derived        print the derived quantities and exit
++ *    --quiet          do not print simulation progress
++ */
++
++#include <cstdio>
++#include <cstdlib>
++#include <limits>
++#include <string>
++#include <string_view>
++#include <vector>
++
++#include "microcircuit_params.h"
++#include "nest_api.h"
++
++namespace
++{
++
++namespace api = nest::api;
++namespace names = nest::names;
++
++constexpr double INF = std::numeric_limits< double >::infinity();
++
++struct Options
++{
++  long threads { 4 };
++  long seed { 55 };
++  double n_scaling { 0.1 };
++  double k_scaling { 0.1 };
++  double presim { 500.0 };
++  double sim { 1000.0 };
++  std::string data_path { "." };
++  bool derived_only { false };
++  bool print_time { true };
++};
++
++Options
++parse_options( const int argc, char* const argv[] )
++{
++  Options opts;
++  for ( int i = 1; i < argc; ++i )
++  {
++    const std::string_view arg { argv[ i ] };
++    if ( arg.starts_with( "--threads=" ) )
++    {
++      opts.threads = std::atol( argv[ i ] + 10 );
++    }
++    else if ( arg.starts_with( "--seed=" ) )
++    {
++      opts.seed = std::atol( argv[ i ] + 7 );
++    }
++    else if ( arg.starts_with( "--n-scaling=" ) )
++    {
++      opts.n_scaling = std::atof( argv[ i ] + 12 );
++    }
++    else if ( arg.starts_with( "--k-scaling=" ) )
++    {
++      opts.k_scaling = std::atof( argv[ i ] + 12 );
++    }
++    else if ( arg.starts_with( "--presim=" ) )
++    {
++      opts.presim = std::atof( argv[ i ] + 9 );
++    }
++    else if ( arg.starts_with( "--sim=" ) )
++    {
++      opts.sim = std::atof( argv[ i ] + 6 );
++    }
++    else if ( arg.starts_with( "--data-path=" ) )
++    {
++      opts.data_path = argv[ i ] + 12;
++    }
++    else if ( arg == "--derived" )
++    {
++      opts.derived_only = true;
++    }
++    else if ( arg == "--quiet" )
++    {
++      opts.print_time = false;
++    }
++  }
++  return opts;
++}
++
++/**
++ * Print the derived network to 17 significant digits, in the format
++ * the PyNEST version's runner prints, so that the two can be diffed.
++ */
++void
++print_derived( const pd14::Derived& d )
++{
++  std::printf( "num_neurons:  " );
++  for ( const long v : d.num_neurons )
++  {
++    std::printf( " %ld", v );
++  }
++  std::printf( "\next_indegrees:" );
++  for ( const long v : d.ext_indegrees )
++  {
++    std::printf( " %ld", v );
++  }
++  std::printf( "\n" );
++  for ( size_t i = 0; i < pd14::NUM_POPS; ++i )
++  {
++    std::printf( "num_synapses[%zu]:", i );
++    for ( const long v : d.num_synapses[ i ] )
++    {
++      std::printf( " %ld", v );
++    }
++    std::printf( "\n" );
++  }
++  std::printf( "weight_ext:    %.17g\n", d.weight_ext );
++  for ( size_t i = 0; i < pd14::NUM_POPS; ++i )
++  {
++    std::printf( "weight[%zu]:", i );
++    for ( const double v : d.weight_mean[ i ] )
++    {
++      std::printf( " %.17g", v );
++    }
++    std::printf( "\n" );
++  }
++  std::printf( "DC_amp:       " );
++  for ( const double v : d.dc_amp )
++  {
++    std::printf( " %.17g", v );
++  }
++  std::printf( "\n" );
++}
++
++}  // namespace
++
++int
++main( int argc, char* argv[] )
++{
++  const Options opts = parse_options( argc, argv );
++  const pd14::Derived net = pd14::derive( opts.n_scaling, opts.k_scaling );
++
++  if ( opts.derived_only )
++  {
++    print_derived( net );
++    return 0;
++  }
++
++  // The kernel comes up here and goes down when this scope ends, on every path
++  // including the one an exception takes.
++  api::Kernel kernel;
++
++  // --- Network.__setup_nest ----------------------------------------------
++  kernel.reset();
++  kernel.set( { { names::local_num_threads, opts.threads },
++    { names::resolution, 0.1 },
++    { names::rng_seed, opts.seed },
++    { names::overwrite_files, true },
++    { names::print_time, opts.print_time } } );
++
++  const double resolution = api::get< double >( kernel.status(), names::resolution );
++
++  // Every rank runs this same program; only rank 0 says so, as the upstream
++  // model does.
++  const bool speak = api::rank() == 0;
++  const long num_ranks = api::num_processes();
++  if ( speak )
++  {
++    std::printf( "RNG seed: %ld\n", api::get< long >( kernel.status(), names::rng_seed ) );
++    std::printf( "Total number of virtual processes: %ld\n", api::num_virtual_processes() );
++  }
++
++  // --- Network.__create_neuronal_populations ------------------------------
++  // Create, then set the fixed parameters, then set the distributed initial
++  // membrane potential: three kernel calls per population, in that order,
++  // because the third draws random numbers and the first two do not.
++  if ( speak )
++  {
++    std::printf( "Creating neuronal populations.\n" );
++  }
++  std::vector< api::NodeCollection > pops;
++  pops.reserve( pd14::NUM_POPS );
++  for ( size_t i = 0; i < pd14::NUM_POPS; ++i )
++  {
++    const auto population = api::create( "iaf_psc_exp", net.num_neurons[ i ] );
++    population.set( { { names::tau_syn_ex, pd14::TAU_SYN },
++      { names::tau_syn_in, pd14::TAU_SYN },
++      { names::E_L, pd14::E_L },
++      { names::V_th, pd14::V_TH },
++      { names::V_reset, pd14::V_RESET },
++      { names::t_ref, pd14::T_REF },
++      { names::I_e, net.dc_amp[ i ] } } );
++    population.set( { { names::V_m, api::random::normal( pd14::V0_MEAN[ i ], pd14::V0_STD[ i ] ) } } );
++    pops.push_back( population );
++  }
++
++  // The node IDs bounding each population, as the PyNEST version's network.py writes them.
++  // Identical IDs mean the two programs created the same nodes in the same
++  // order.
++  {
++    const std::string path = opts.data_path + "/population_nodeids.dat";
++    std::FILE* f = std::fopen( path.c_str(), "w" );
++    if ( f == nullptr )
++    {
++      throw nest::IOError();
++    }
++    for ( const auto& pop : pops )
++    {
++      const long n = static_cast< long >( pop.size() );
++      std::fprintf(
++        f, "%ld %ld\n", pop[ 0 ].get< long >( names::global_id ), pop[ n - 1 ].get< long >( names::global_id ) );
++    }
++    std::fclose( f );
++  }
++
++  // --- Network.__create_recording_devices ---------------------------------
++  if ( speak )
++  {
++    std::printf( "Creating recording devices.\n" );
++  }
++  const auto spike_recorders = api::create( "spike_recorder",
++    pd14::NUM_POPS,
++    { { names::record_to, std::string( "ascii" ) }, { names::label, opts.data_path + "/spike_recorder" } } );
++
++  // --- Network.__create_poisson_bg_input ----------------------------------
++  if ( speak )
++  {
++    std::printf( "Creating Poisson generators for background input.\n" );
++  }
++  const auto poisson_bg_input = api::create( "poisson_generator", pd14::NUM_POPS );
++  {
++    std::vector< api::Params > rates;
++    rates.reserve( pd14::NUM_POPS );
++    for ( size_t i = 0; i < pd14::NUM_POPS; ++i )
++    {
++      rates.push_back( { { names::rate, pd14::BG_RATE * static_cast< double >( net.ext_indegrees[ i ] ) } } );
++    }
++    poisson_bg_input.set( rates );
++  }
++
++  // --- Network.__connect_neuronal_populations -----------------------------
++  // Weights and delays are drawn per connection. Redrawing rather than clipping
++  // keeps the distribution intact: an excitatory weight stays positive, an
++  // inhibitory one stays negative, and a delay stays at or above the
++  // resolution. The lower bound on the delay is half a step below the
++  // resolution because the kernel rounds delays to the grid.
++  if ( speak )
++  {
++    std::printf( "Connecting neuronal populations recurrently.\n" );
++  }
++  const double delay_min = resolution - 0.5 * resolution;
++  for ( size_t i = 0; i < pd14::NUM_POPS; ++i )
++  {
++    for ( size_t j = 0; j < pd14::NUM_POPS; ++j )
++    {
++      const double weight_mean = net.weight_mean[ i ][ j ];
++      const double weight_std = std::abs( weight_mean * pd14::WEIGHT_REL_STD );
++      const double weight_min = weight_mean < 0.0 ? -INF : 0.0;
++      const double weight_max = weight_mean < 0.0 ? 0.0 : INF;
++
++      const double delay_mean = j % 2 == 0 ? pd14::DELAY_EXC_MEAN : pd14::DELAY_INH_MEAN;
++      const double delay_std = delay_mean * pd14::DELAY_REL_STD;
++
++      const api::SynSpec syn { api::Params { { names::synapse_model, std::string( "static_synapse" ) },
++        { names::weight, api::math::redraw( api::random::normal( weight_mean, weight_std ), weight_min, weight_max ) },
++        { names::delay, api::math::redraw( api::random::normal( delay_mean, delay_std ), delay_min, INF ) } } };
++
++      api::connect( pops[ j ], pops[ i ], api::ConnSpec::fixed_total_number( net.num_synapses[ i ][ j ] ), syn );
++    }
++  }
++
++  // --- Network.__connect_recording_devices --------------------------------
++  if ( speak )
++  {
++    std::printf( "Connecting recording devices.\n" );
++  }
++  for ( size_t i = 0; i < pd14::NUM_POPS; ++i )
++  {
++    api::connect( pops[ i ], spike_recorders[ static_cast< long >( i ) ] );
++  }
++
++  // --- Network.__connect_poisson_bg_input ---------------------------------
++  if ( speak )
++  {
++    std::printf( "Connecting Poisson generators for background input.\n" );
++  }
++  for ( size_t i = 0; i < pd14::NUM_POPS; ++i )
++  {
++    const api::SynSpec syn { api::Params { { names::synapse_model, std::string( "static_synapse" ) },
++      { names::weight, net.weight_ext },
++      { names::delay, pd14::DELAY_POISSON } } };
++    api::connect( poisson_bg_input[ static_cast< long >( i ) ], pops[ i ], api::ConnSpec::all_to_all(), syn );
++  }
++
++  // Building the presynaptic side of the connections happens on the first
++  // simulate. The upstream model forces it here so that it is charged to the
++  // connection phase rather than to the simulation; doing the same keeps the
++  // reported timings comparable.
++  api::prepare();
++  api::cleanup();
++
++  // --- simulate ------------------------------------------------------------
++  // A presimulation first, whose spikes are recorded but whose startup
++  // transient is not representative of the network state.
++  if ( speak )
++  {
++    std::printf( "Simulating %.1f ms.\n", opts.presim );
++  }
++  api::simulate( opts.presim );
++  if ( speak )
++  {
++    std::printf( "Simulating %.1f ms.\n", opts.sim );
++  }
++  api::simulate( opts.sim );
++
++  // --- results --------------------------------------------------------------
++  const Dictionary kernel_final = kernel.status();
++  const double t_create = api::get< double >( kernel_final, names::time_construction_create );
++  const double t_connect = api::get< double >( kernel_final, names::time_construction_connect );
++  const double t_simulate = api::get< double >( kernel_final, names::time_simulate );
++  const long network_size = api::get< long >( kernel_final, names::network_size );
++  const long num_connections = api::get< long >( kernel_final, names::num_connections );
++  const double t_total = opts.presim + opts.sim;
++
++  if ( not speak )
++  {
++    kernel.shutdown( 0 );
++    return 0;
++  }
++
++  std::printf( "Microcircuit simulation (C++, nest::api interface)\n" );
++  // On more than one rank each recorder counts only the spikes of the neurons
++  // that live on this rank, so the counts below are rank 0's share rather than
++  // the total. The spike files hold all of it.
++  if ( num_ranks > 1 )
++  {
++    std::printf( "Event counts below are rank 0's share of %ld ranks.\n", num_ranks );
++  }
++  std::printf( "Number of neurons : %ld\n", network_size - 2 * static_cast< long >( pd14::NUM_POPS ) );
++  std::printf( "Number of synapses: %ld\n", num_connections );
++  for ( size_t i = 0; i < pd14::NUM_POPS; ++i )
++  {
++    const long events = spike_recorders[ static_cast< long >( i ) ].get< long >( names::n_events );
++    std::printf( "%-5s : %6ld neurons, %9ld events, %7.3f Hz\n",
++      pd14::POPULATIONS[ i ].c_str(),
++      net.num_neurons[ i ],
++      events,
++      static_cast< double >( events ) / static_cast< double >( net.num_neurons[ i ] ) / t_total * 1000.0 );
++  }
++  std::printf( "Building time     : %.3f s (create %.3f, connect %.3f)\n", t_create + t_connect, t_create, t_connect );
++  std::printf( "Simulation time   : %.3f s\n", t_simulate );
++
++  kernel.shutdown( 0 );
++  return 0;
++}
+diff --git a/examples/cpp/microcircuit_params.h b/examples/cpp/microcircuit_params.h
+new file mode 100644
+index 000000000..ff65fa60d
+--- /dev/null
++++ b/examples/cpp/microcircuit_params.h
+@@ -0,0 +1,236 @@
++/*
++ *  microcircuit_params.h
++ *
++ *  This file is part of NEST.
++ *
++ *  Copyright (C) 2004 The NEST Initiative
++ *
++ *  NEST is free software: you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation, either version 2 of the License, or
++ *  (at your option) any later version.
++ *
++ *  NEST is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with NEST.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++/*
++ *  Parameters of the Potjans and Diesmann (2014) cortical microcircuit, and the
++ *  quantities the model derives from them before it creates a single node: the
++ *  scaled population sizes, the synapse count for every pair of populations, the
++ *  external indegrees, the synaptic weights and the compensating DC current.
++ *
++ *  Every value and every formula is taken from the PyNEST microcircuit example. The arithmetic is
++ *  reproduced operation by operation rather than simplified, because the results
++ *  are rounded to integers that then decide how many random numbers the kernel
++ *  draws. A difference of one synapse changes every spike that follows.
++ *
++ *  Two details of that arithmetic are easy to get wrong in C++:
++ *
++ *  - `np.round` rounds halves to even. `std::round` rounds them away from zero.
++ *    `std::nearbyint` under the default rounding mode is the one that matches.
++ *  - `np.sum` over the last axis of a contiguous array of eight elements is not
++ *    a left to right sum. NumPy accumulates it as a balanced tree, which gives a
++ *    different last bit. See `sum8` below.
++ *
++ *  This header needs no NEST headers: it is arithmetic only, so it can be
++ *  compared against the Python reference without a kernel.
++ */
++
++#ifndef NEST_CPP_PD14_MICROCIRCUIT_PARAMS_HPP
++#define NEST_CPP_PD14_MICROCIRCUIT_PARAMS_HPP
++
++#include <array>
++#include <cmath>
++#include <string>
++
++namespace pd14
++{
++
++constexpr size_t NUM_POPS = 8;
++
++template < typename T >
++using PopArray = std::array< T, NUM_POPS >;
++template < typename T >
++using PopMatrix = std::array< std::array< T, NUM_POPS >, NUM_POPS >;
++
++//! Names of the populations, in creation order.
++const PopArray< std::string > POPULATIONS { "L23E", "L23I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I" };
++
++//! Number of neurons per population in the unscaled model.
++constexpr PopArray< double > FULL_NUM_NEURONS { 20683, 5834, 21915, 5479, 4850, 1065, 14395, 2948 };
++
++//! Firing rates of the unscaled model, used to compensate for scaled indegrees.
++constexpr PopArray< double > FULL_MEAN_RATES { 0.903, 2.965, 4.414, 5.876, 7.569, 8.633, 1.105, 7.829 };
++
++//! Indegree of the external Poisson drive, per population.
++constexpr PopArray< double > K_EXT { 1600, 1500, 2100, 1900, 2000, 1900, 2900, 2100 };
++
++//! Connection probabilities; first index is the target population, second the source.
++constexpr PopMatrix< double > CONN_PROBS { {
++  { 0.1009, 0.1689, 0.0437, 0.0818, 0.0323, 0.0, 0.0076, 0.0 },
++  { 0.1346, 0.1371, 0.0316, 0.0515, 0.0755, 0.0, 0.0042, 0.0 },
++  { 0.0077, 0.0059, 0.0497, 0.135, 0.0067, 0.0003, 0.0453, 0.0 },
++  { 0.0691, 0.0029, 0.0794, 0.1597, 0.0033, 0.0, 0.1057, 0.0 },
++  { 0.1004, 0.0622, 0.0505, 0.0057, 0.0831, 0.3726, 0.0204, 0.0 },
++  { 0.0548, 0.0269, 0.0257, 0.0022, 0.06, 0.3158, 0.0086, 0.0 },
++  { 0.0156, 0.0066, 0.0211, 0.0166, 0.0572, 0.0197, 0.0396, 0.2252 },
++  { 0.0364, 0.001, 0.0034, 0.0005, 0.0277, 0.008, 0.0658, 0.1443 },
++} };
++
++//! Mean amplitude of an excitatory postsynaptic potential, in mV.
++constexpr double PSP_EXC_MEAN = 0.15;
++//! Standard deviation of a weight, relative to its mean.
++constexpr double WEIGHT_REL_STD = 0.1;
++//! Inhibitory weight relative to the excitatory one.
++constexpr double G = -4.0;
++//! Mean delays, in ms.
++constexpr double DELAY_EXC_MEAN = 1.5;
++constexpr double DELAY_INH_MEAN = 0.75;
++//! Standard deviation of a delay, relative to its mean.
++constexpr double DELAY_REL_STD = 0.5;
++//! Rate of one external Poisson generator, in spikes/s, and its delay in ms.
++constexpr double BG_RATE = 8.0;
++constexpr double DELAY_POISSON = 1.5;
++
++//! Neuron parameters. V0 is the distribution the initial membrane potential is drawn from.
++constexpr double E_L = -65.0;
++constexpr double V_TH = -50.0;
++constexpr double V_RESET = -65.0;
++constexpr double C_M = 250.0;
++constexpr double TAU_M = 10.0;
++constexpr double TAU_SYN = 0.5;
++constexpr double T_REF = 2.0;
++constexpr PopArray< double > V0_MEAN { -68.28, -63.16, -63.33, -63.45, -63.11, -61.66, -66.72, -61.43 };
++constexpr PopArray< double > V0_STD { 5.36, 4.57, 4.74, 4.94, 4.94, 4.55, 5.46, 4.48 };
++
++/**
++ * Sum eight doubles the way `np.sum` does along the last axis of a contiguous array.
++ *
++ * NumPy's pairwise summation takes the eight elements as eight partial
++ * accumulators and combines them as a balanced tree. A left to right sum gives a
++ * different result in the last bit, which is visible in the compensating DC
++ * current.
++ */
++inline double
++sum8( const PopArray< double >& a )
++{
++  return ( ( a[ 0 ] + a[ 1 ] ) + ( a[ 2 ] + a[ 3 ] ) ) + ( ( a[ 4 ] + a[ 5 ] ) + ( a[ 6 ] + a[ 7 ] ) );
++}
++
++/**
++ * Factor converting a postsynaptic potential in mV to a postsynaptic current in pA.
++ *
++ * Identical to `helpers.postsynaptic_potential_to_current`, which follows Eq. 5
++ * of Hanuschkin et al. (2010).
++ */
++inline double
++psc_over_psp( const double c_m, const double tau_m, const double tau_syn )
++{
++  const double sub = 1.0 / ( tau_syn - tau_m );
++  const double pre = tau_m * tau_syn / c_m * sub;
++  const double frac = std::pow( tau_m / tau_syn, sub );
++  return 1.0 / ( pre * ( std::pow( frac, tau_m ) - std::pow( frac, tau_syn ) ) );
++}
++
++//! Everything the model derives from the parameters above.
++struct Derived
++{
++  PopArray< long > num_neurons;     //!< population sizes after N_scaling
++  PopMatrix< long > num_synapses;   //!< synapses per (target, source) pair after scaling
++  PopArray< long > ext_indegrees;   //!< external indegree after K_scaling
++  PopMatrix< double > weight_mean;  //!< mean synaptic weight in pA, per (target, source)
++  double weight_ext;                //!< weight of an external connection in pA
++  PopArray< double > dc_amp;        //!< DC current compensating the scaled indegrees, in pA
++};
++
++/**
++ * Derive the network from the parameters, for the given scaling factors.
++ *
++ * Mirrors `Network.__derive_parameters` with `poisson_input` true and no
++ * thalamic input, which is the configuration of the upstream defaults.
++ */
++inline Derived
++derive( const double n_scaling, const double k_scaling )
++{
++  Derived d {};
++
++  // Total synapse numbers of the unscaled model, from the connection
++  // probabilities: helpers.num_synapses_from_conn_probs.
++  PopMatrix< double > full_num_synapses {};
++  for ( size_t i = 0; i < NUM_POPS; ++i )
++  {
++    for ( size_t j = 0; j < NUM_POPS; ++j )
++    {
++      const double prod = FULL_NUM_NEURONS[ i ] * FULL_NUM_NEURONS[ j ];
++      full_num_synapses[ i ][ j ] = std::log( 1.0 - CONN_PROBS[ i ][ j ] ) / std::log( ( prod - 1.0 ) / prod );
++    }
++  }
++
++  for ( size_t i = 0; i < NUM_POPS; ++i )
++  {
++    d.num_neurons[ i ] = static_cast< long >( std::nearbyint( FULL_NUM_NEURONS[ i ] * n_scaling ) );
++    d.ext_indegrees[ i ] = static_cast< long >( std::nearbyint( K_EXT[ i ] * k_scaling ) );
++    for ( size_t j = 0; j < NUM_POPS; ++j )
++    {
++      d.num_synapses[ i ][ j ] =
++        static_cast< long >( std::nearbyint( full_num_synapses[ i ][ j ] * n_scaling * k_scaling ) );
++    }
++  }
++
++  // Mean postsynaptic potentials, converted to currents. Columns alternate
++  // excitatory and inhibitory sources; the L4E to L23E potential is doubled.
++  const double conversion = psc_over_psp( C_M, TAU_M, TAU_SYN );
++  PopMatrix< double > psc_mean {};
++  for ( size_t i = 0; i < NUM_POPS; ++i )
++  {
++    for ( size_t j = 0; j < NUM_POPS; ++j )
++    {
++      psc_mean[ i ][ j ] = ( j % 2 == 0 ? PSP_EXC_MEAN : PSP_EXC_MEAN * G ) * conversion;
++    }
++  }
++  psc_mean[ 0 ][ 2 ] = 2.0 * PSP_EXC_MEAN * conversion;
++  double psc_ext = PSP_EXC_MEAN * conversion;
++
++  // With Poisson input there is no DC input to compensate for a missing drive.
++  PopArray< double > dc_amp {};
++  dc_amp.fill( 0.0 );
++
++  // Scaling the indegrees down thins the input, so the weights are scaled up by
++  // the square root and the lost mean input is added back as DC current:
++  // helpers.adjust_weights_and_input_to_synapse_scaling.
++  if ( k_scaling != 1.0 )
++  {
++    const double root_k = std::sqrt( k_scaling );
++    for ( size_t i = 0; i < NUM_POPS; ++i )
++    {
++      PopArray< double > terms {};
++      for ( size_t j = 0; j < NUM_POPS; ++j )
++      {
++        const double indegree = full_num_synapses[ i ][ j ] / FULL_NUM_NEURONS[ i ];
++        terms[ j ] = psc_mean[ i ][ j ] * indegree * FULL_MEAN_RATES[ j ];
++        psc_mean[ i ][ j ] /= root_k;
++      }
++      const double input_rec = sum8( terms );
++      const double input_ext = psc_ext * K_EXT[ i ] * BG_RATE;
++      dc_amp[ i ] += 0.001 * TAU_SYN * ( 1.0 - root_k ) * input_rec;
++      dc_amp[ i ] += 0.001 * TAU_SYN * ( 1.0 - root_k ) * input_ext;
++    }
++    psc_ext /= root_k;
++  }
++
++  d.weight_mean = psc_mean;
++  d.weight_ext = psc_ext;
++  d.dc_amp = dc_amp;
++  return d;
++}
++
++}  // namespace pd14
++
++#endif /* NEST_CPP_PD14_MICROCIRCUIT_PARAMS_HPP */
+-- 
+2.55.0
+

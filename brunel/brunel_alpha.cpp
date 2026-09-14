@@ -224,7 +224,7 @@ main( int argc, char* argv[] )
   const double t_connect = api::get< double >( kernel_final, names::time_construction_connect );
   const double t_simulate = api::get< double >( kernel_final, names::time_simulate );
 
-  std::printf( "Brunel network simulation (C++, nest_cpp interface)\n" );
+  std::printf( "Brunel network simulation (C++, nest::api interface)\n" );
   std::printf( "Number of neurons : %ld\n", NE + NI );
   std::printf( "Number of synapses: %ld\n", num_synapses );
   std::printf( "Excitatory events : %ld\n", events_ex );

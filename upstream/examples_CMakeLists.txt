@@ -1,0 +1,57 @@
+# examples/cpp/CMakeLists.txt
+#
+# This file is part of NEST.
+#
+# Copyright (C) 2004 The NEST Initiative
+#
+# NEST is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# NEST is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with NEST.  If not, see <http://www.gnu.org/licenses/>.
+
+# These examples build against an *installed* NEST rather than as part of the
+# NEST build, because that is the case they are meant to demonstrate. Configure
+# them separately:
+#
+#   cmake -B build -S examples/cpp -DNEST_CONFIG=/path/to/bin/nest-config
+#   cmake --build build
+
+cmake_minimum_required( VERSION 3.19 )
+project( nest_api_examples CXX )
+
+find_program( NEST_CONFIG nest-config REQUIRED
+  DOC "Path to the nest-config of the NEST installation to build against" )
+
+execute_process( COMMAND ${NEST_CONFIG} --includes
+  OUTPUT_VARIABLE NEST_INCLUDES OUTPUT_STRIP_TRAILING_WHITESPACE )
+execute_process( COMMAND ${NEST_CONFIG} --kernel-libs
+  OUTPUT_VARIABLE NEST_KERNEL_LIBS OUTPUT_STRIP_TRAILING_WHITESPACE )
+execute_process( COMMAND ${NEST_CONFIG} --cflags
+  OUTPUT_VARIABLE NEST_CFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE )
+
+if ( NEST_KERNEL_LIBS STREQUAL "" )
+  message( FATAL_ERROR
+    "${NEST_CONFIG} has no --kernel-libs. That NEST is older than the change "
+    "that installs the kernel libraries, and cannot be linked against." )
+endif ()
+
+separate_arguments( NEST_INCLUDES NATIVE_COMMAND "${NEST_INCLUDES}" )
+separate_arguments( NEST_KERNEL_LIBS NATIVE_COMMAND "${NEST_KERNEL_LIBS}" )
+separate_arguments( NEST_CFLAGS NATIVE_COMMAND "${NEST_CFLAGS}" )
+
+find_package( OpenMP REQUIRED )
+
+foreach ( example brunel_alpha microcircuit )
+  add_executable( ${example} ${example}.cpp )
+  target_compile_options( ${example} PRIVATE ${NEST_CFLAGS} )
+  target_include_directories( ${example} PRIVATE ${NEST_INCLUDES} ${CMAKE_CURRENT_SOURCE_DIR} )
+  target_link_libraries( ${example} ${NEST_KERNEL_LIBS} OpenMP::OpenMP_CXX )
+endforeach ()
