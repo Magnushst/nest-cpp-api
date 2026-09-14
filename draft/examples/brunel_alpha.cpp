@@ -213,6 +213,14 @@ main( int argc, char* argv[] )
   const long num_synapses = nestpp::get< long >( nestpp::model_defaults( "excitatory" ), names::num_connections )
     + nestpp::get< long >( nestpp::model_defaults( "inhibitory" ), names::num_connections );
 
+  // NEST instruments itself; read its own stopwatches rather than adding a
+  // clock of our own. The per-thread timers beside these (time_update and the
+  // rest) are only filled in a build configured with detailed timers.
+  const Dictionary kernel_final = kernel.status();
+  const double t_create = nestpp::get< double >( kernel_final, names::time_construction_create );
+  const double t_connect = nestpp::get< double >( kernel_final, names::time_construction_connect );
+  const double t_simulate = nestpp::get< double >( kernel_final, names::time_simulate );
+
   std::printf( "Brunel network simulation (C++, drafted interface)\n" );
   std::printf( "Number of neurons : %ld\n", NE + NI );
   std::printf( "Number of synapses: %ld\n", num_synapses );
@@ -220,6 +228,8 @@ main( int argc, char* argv[] )
   std::printf( "Inhibitory events : %ld\n", events_in );
   std::printf( "Excitatory rate   : %.2f Hz\n", rate_ex );
   std::printf( "Inhibitory rate   : %.2f Hz\n", rate_in );
+  std::printf( "Building time     : %.3f s (create %.3f, connect %.3f)\n", t_create + t_connect, t_create, t_connect );
+  std::printf( "Simulation time   : %.3f s\n", t_simulate );
 
   return 0;
 }

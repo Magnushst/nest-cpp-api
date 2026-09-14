@@ -137,6 +137,13 @@ rate_in = events_in / simtime * 1000.0 / N_rec
 
 num_synapses = nest.GetDefaults("excitatory")["num_connections"] + nest.GetDefaults("inhibitory")["num_connections"]
 
+# NEST instruments itself; read its own stopwatches rather than calling
+# time.time() around the calls, as the upstream example does.
+kernel_final = nest.GetKernelStatus()
+t_create = kernel_final["time_construction_create"]
+t_connect = kernel_final["time_construction_connect"]
+t_simulate = kernel_final["time_simulate"]
+
 print("Brunel network simulation (Python reference)")
 print("Number of neurons : {0}".format(N_neurons))
 print("Number of synapses: {0}".format(num_synapses))
@@ -144,3 +151,5 @@ print("Excitatory events : {0}".format(events_ex))
 print("Inhibitory events : {0}".format(events_in))
 print("Excitatory rate   : {0:.2f} Hz".format(rate_ex))
 print("Inhibitory rate   : {0:.2f} Hz".format(rate_in))
+print("Building time     : {0:.3f} s (create {1:.3f}, connect {2:.3f})".format(t_create + t_connect, t_create, t_connect))
+print("Simulation time   : {0:.3f} s".format(t_simulate))

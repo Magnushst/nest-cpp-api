@@ -317,6 +317,16 @@ main( int argc, char* argv[] )
   const long num_synapses =
     def_ex.get< long >( nest::names::num_connections ) + def_in.get< long >( nest::names::num_connections );
 
+  // NEST instruments itself. Rather than wrap the calls in a clock of our own,
+  // read the kernel's own stopwatches: time_construction_create and
+  // time_construction_connect cover network build, time_simulate covers the
+  // run. The per-thread timers beside them (time_update, time_deliver_spike_data
+  // and the rest) are only filled in a build configured with detailed timers.
+  const Dictionary kernel_final = nest::get_kernel_status();
+  const double t_create = kernel_final.get< double >( nest::names::time_construction_create );
+  const double t_connect = kernel_final.get< double >( nest::names::time_construction_connect );
+  const double t_simulate = kernel_final.get< double >( nest::names::time_simulate );
+
   std::printf( "Brunel network simulation (C++, raw kernel API)\n" );
   std::printf( "Number of neurons : %ld\n", NE + NI );
   std::printf( "Number of synapses: %ld\n", num_synapses );
@@ -324,6 +334,8 @@ main( int argc, char* argv[] )
   std::printf( "Inhibitory events : %ld\n", events_in );
   std::printf( "Excitatory rate   : %.2f Hz\n", rate_ex );
   std::printf( "Inhibitory rate   : %.2f Hz\n", rate_in );
+  std::printf( "Building time     : %.3f s (create %.3f, connect %.3f)\n", t_create + t_connect, t_create, t_connect );
+  std::printf( "Simulation time   : %.3f s\n", t_simulate );
 
   nest::shutdown_nest( 0 );
   return 0;
