@@ -73,7 +73,10 @@ namespace detail
  * True if @c T is one of the alternatives of the kernel's @c any_type variant.
  */
 template < typename T >
-concept DictAlternative = requires( const any_type& v ) { std::holds_alternative< T >( v ); };
+concept DictAlternative = requires( const any_type& v )
+{
+  std::holds_alternative< T >( v );
+};
 
 /**
  * Read a scalar of type @c T out of a status dictionary.
@@ -132,7 +135,7 @@ scalar( const Dictionary& dict, const std::string& key )
   return element< T >( value, key );
 }
 
-} // namespace detail
+}  // namespace detail
 
 /**
  * Read a scalar of type @c T out of any dictionary the kernel returns.
@@ -172,7 +175,7 @@ public:
     return ptr_;
   }
 
-  operator any_type() const // NOLINT: implicit by design, so it can be a Params value
+  operator any_type() const  // NOLINT: implicit by design, so it can be a Params value
   {
     return ptr_;
   }
@@ -306,7 +309,7 @@ exponential( const double beta = 1.0 )
   return Parameter( nest::create_parameter( "exponential", specs ) );
 }
 
-} // namespace random
+}  // namespace random
 
 /**
  * Operations on parameters, named as PyNEST names them in @c nest.math.
@@ -403,7 +406,7 @@ conditional( const Parameter& condition, const Parameter& if_true, const Paramet
   return Parameter( nest::conditional_parameter( condition.ptr(), if_true.ptr(), if_false.ptr() ) );
 }
 
-} // namespace math
+}  // namespace math
 
 /**
  * An ordered set of named parameters, written where it is used.
@@ -698,7 +701,8 @@ public:
       result.reserve( items.size() );
       for ( const any_type& item : items )
       {
-        result.push_back( std::holds_alternative< std::monostate >( item ) ? absent : detail::element< T >( item, key ) );
+        result.push_back(
+          std::holds_alternative< std::monostate >( item ) ? absent : detail::element< T >( item, key ) );
       }
       return result;
     }
@@ -855,7 +859,7 @@ public:
     {
       argv_.push_back( arg.data() );
     }
-    argv_.push_back( nullptr ); // OpenMPI requires the null terminator
+    argv_.push_back( nullptr );  // OpenMPI requires the null terminator
 
     argc_ = static_cast< int >( args_.size() );
     char** argv = argv_.data();
@@ -894,7 +898,7 @@ public:
     {
       shutdown( 0 );
     }
-    catch ( ... ) // NOLINT: a destructor must not propagate
+    catch ( ... )  // NOLINT: a destructor must not propagate
     {
     }
   }
@@ -1145,7 +1149,7 @@ print_nodes()
   return nest::print_nodes_to_string();
 }
 
-} // namespace api
-} // namespace nest
+}  // namespace api
+}  // namespace nest
 
 #endif /* NEST_API_H */

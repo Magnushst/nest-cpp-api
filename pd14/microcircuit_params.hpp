@@ -212,6 +212,6 @@ derive( const double n_scaling, const double k_scaling )
   return d;
 }
 
-} // namespace pd14
+}  // namespace pd14
 
 #endif /* NEST_CPP_PD14_MICROCIRCUIT_PARAMS_HPP */

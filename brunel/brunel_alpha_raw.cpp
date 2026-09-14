@@ -96,7 +96,7 @@ compute_psp_norm( const double tau_mem, const double c_mem, const double tau_syn
 struct Options
 {
   long threads { 1 };
-  long seed { 0 }; //!< 0 means "leave the kernel's own default alone"
+  long seed { 0 };  //!< 0 means "leave the kernel's own default alone"
   bool print_time { true };
 };
 
@@ -123,7 +123,7 @@ parse_options( const int argc, char* const argv[] )
   return opts;
 }
 
-} // namespace
+}  // namespace
 
 int
 main( int argc, char* argv[] )
@@ -139,13 +139,13 @@ main( int argc, char* argv[] )
   const Options opts = parse_options( argc, argv );
 
   // --- simulation parameters, verbatim from the Python example -----------
-  const double dt = 0.1;         // resolution in ms
-  const double simtime = 1000.0; // simulated biological time in ms
-  const double delay = 1.5;      // synaptic delay in ms
+  const double dt = 0.1;          // resolution in ms
+  const double simtime = 1000.0;  // simulated biological time in ms
+  const double delay = 1.5;       // synaptic delay in ms
 
-  const double g = 5.0;       // ratio of inhibitory to excitatory weight
-  const double eta = 2.0;     // external rate relative to threshold rate
-  const double epsilon = 0.1; // connection probability
+  const double g = 5.0;        // ratio of inhibitory to excitatory weight
+  const double eta = 2.0;      // external rate relative to threshold rate
+  const double epsilon = 0.1;  // connection probability
 
   const long order = 2500;
   const long NE = 4 * order;
@@ -155,12 +155,12 @@ main( int argc, char* argv[] )
   const long CE = static_cast< long >( epsilon * static_cast< double >( NE ) );
   const long CI = static_cast< long >( epsilon * static_cast< double >( NI ) );
 
-  const double tau_syn = 0.5; // ms
-  const double tau_mem = 20.0; // ms
-  const double c_mem = 250.0;  // pF
-  const double theta = 20.0;   // mV
+  const double tau_syn = 0.5;   // ms
+  const double tau_mem = 20.0;  // ms
+  const double c_mem = 250.0;   // pF
+  const double theta = 20.0;    // mV
 
-  const double J = 0.1; // postsynaptic potential amplitude in mV
+  const double J = 0.1;  // postsynaptic potential amplitude in mV
   const double J_unit = compute_psp_norm( tau_mem, c_mem, tau_syn );
   const double J_ex = J / J_unit;
   const double J_in = -g * J_ex;

@@ -151,7 +151,7 @@ print_derived( const pd14::Derived& d )
   std::printf( "\n" );
 }
 
-} // namespace
+}  // namespace
 
 int
 main( int argc, char* argv[] )
@@ -226,7 +226,8 @@ main( int argc, char* argv[] )
     for ( const auto& pop : pops )
     {
       const long n = static_cast< long >( pop.size() );
-      std::fprintf( f, "%ld %ld\n", pop[ 0 ].get< long >( names::global_id ), pop[ n - 1 ].get< long >( names::global_id ) );
+      std::fprintf(
+        f, "%ld %ld\n", pop[ 0 ].get< long >( names::global_id ), pop[ n - 1 ].get< long >( names::global_id ) );
     }
     std::fclose( f );
   }
@@ -279,8 +280,7 @@ main( int argc, char* argv[] )
       const double delay_mean = j % 2 == 0 ? pd14::DELAY_EXC_MEAN : pd14::DELAY_INH_MEAN;
       const double delay_std = delay_mean * pd14::DELAY_REL_STD;
 
-      const api::SynSpec syn { api::Params {
-        { names::synapse_model, std::string( "static_synapse" ) },
+      const api::SynSpec syn { api::Params { { names::synapse_model, std::string( "static_synapse" ) },
         { names::weight, api::math::redraw( api::random::normal( weight_mean, weight_std ), weight_min, weight_max ) },
         { names::delay, api::math::redraw( api::random::normal( delay_mean, delay_std ), delay_min, INF ) } } };
 
