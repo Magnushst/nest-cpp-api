@@ -19,7 +19,9 @@ done
 [[ -x "${NEST_CONFIG}" ]] || { echo "missing ${NEST_CONFIG}" >&2; exit 1; }
 
 mkdir -p "${OUT}"
-CXXFLAGS=(-std=c++20 -fopenmp -O2 -Wall -I"${HERE}/include")
+# include/nest is on the path so that a model includes "nest_api.h" exactly as
+# it would against an installed NEST, whose headers land in include/nest.
+CXXFLAGS=(-std=c++20 -fopenmp -O2 -Wall -I"${HERE}/include" -I"${HERE}/include/nest")
 # shellcheck disable=SC2207
 INCLUDES=($("${NEST_CONFIG}" --includes))
 # shellcheck disable=SC2207

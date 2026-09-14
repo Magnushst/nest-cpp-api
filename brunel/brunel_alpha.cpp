@@ -24,13 +24,14 @@
 #include <cstdlib>
 #include <string_view>
 
-#include "nest_cpp/nest.hpp"
+#include "nest_api.h"
 
 namespace
 {
 
-namespace names = nestpp::names;
-using nestpp::numerics::e;
+namespace api = nest::api;
+namespace names = nest::names;
+using numerics::e;
 
 /**
  * Lower branch of the Lambert W function, W_{-1}(x), for x in (-1/e, 0), by
@@ -115,7 +116,7 @@ main( int argc, char* argv[] )
   // including the one an exception takes. The explicit shutdown at the end
   // reports the exit status; the destructor is the backstop for the paths that
   // do not reach it.
-  nestpp::Kernel kernel;
+  api::Kernel kernel;
   kernel.reset();
 
   // --- parameters, verbatim from the Python example ----------------------
@@ -151,7 +152,7 @@ main( int argc, char* argv[] )
 
   std::printf( "J_unit = %.17g\nJ_ex   = %.17g\np_rate = %.17g\n", J_unit, J_ex, p_rate );
 
-  nestpp::Params kernel_params { { names::resolution, dt },
+  api::Params kernel_params { { names::resolution, dt },
     { names::print_time, opts.print_time },
     { names::overwrite_files, true },
     { names::local_num_threads, opts.threads } };
@@ -162,10 +163,10 @@ main( int argc, char* argv[] )
   kernel.set( kernel_params );
 
   std::printf( "threads = %ld\nrng_seed = %ld\n",
-    nestpp::get< long >( kernel.status(), names::local_num_threads ),
-    nestpp::get< long >( kernel.status(), names::rng_seed ) );
+    api::get< long >( kernel.status(), names::local_num_threads ),
+    api::get< long >( kernel.status(), names::rng_seed ) );
 
-  const nestpp::Params neuron_params { { names::C_m, c_mem },
+  const api::Params neuron_params { { names::C_m, c_mem },
     { names::tau_m, tau_mem },
     { names::tau_syn_ex, tau_syn },
     { names::tau_syn_in, tau_syn },
@@ -177,33 +178,33 @@ main( int argc, char* argv[] )
 
   std::printf( "Building network\n" );
 
-  const auto nodes_ex = nestpp::create( "iaf_psc_alpha", NE, neuron_params );
-  const auto nodes_in = nestpp::create( "iaf_psc_alpha", NI, neuron_params );
-  const auto noise = nestpp::create( "poisson_generator", 1, { { names::rate, p_rate } } );
+  const auto nodes_ex = api::create( "iaf_psc_alpha", NE, neuron_params );
+  const auto nodes_in = api::create( "iaf_psc_alpha", NI, neuron_params );
+  const auto noise = api::create( "poisson_generator", 1, { { names::rate, p_rate } } );
   const auto espikes =
-    nestpp::create( "spike_recorder", 1, { { names::label, "brunel-hpp-ex" }, { names::record_to, "ascii" } } );
+    api::create( "spike_recorder", 1, { { names::label, "brunel-hpp-ex" }, { names::record_to, "ascii" } } );
   const auto ispikes =
-    nestpp::create( "spike_recorder", 1, { { names::label, "brunel-hpp-in" }, { names::record_to, "ascii" } } );
+    api::create( "spike_recorder", 1, { { names::label, "brunel-hpp-in" }, { names::record_to, "ascii" } } );
 
   std::printf( "Connecting devices\n" );
 
-  nestpp::copy_model( "static_synapse", "excitatory", { { names::weight, J_ex }, { names::delay, delay } } );
-  nestpp::copy_model( "static_synapse", "inhibitory", { { names::weight, J_in }, { names::delay, delay } } );
+  api::copy_model( "static_synapse", "excitatory", { { names::weight, J_ex }, { names::delay, delay } } );
+  api::copy_model( "static_synapse", "inhibitory", { { names::weight, J_in }, { names::delay, delay } } );
 
-  nestpp::connect( noise, nodes_ex, nestpp::ConnSpec::all_to_all(), "excitatory" );
-  nestpp::connect( noise, nodes_in, nestpp::ConnSpec::all_to_all(), "excitatory" );
+  api::connect( noise, nodes_ex, api::ConnSpec::all_to_all(), "excitatory" );
+  api::connect( noise, nodes_in, api::ConnSpec::all_to_all(), "excitatory" );
 
-  nestpp::connect( nodes_ex.first( N_rec ), espikes, nestpp::ConnSpec::all_to_all(), "excitatory" );
-  nestpp::connect( nodes_in.first( N_rec ), ispikes, nestpp::ConnSpec::all_to_all(), "excitatory" );
+  api::connect( nodes_ex.first( N_rec ), espikes, api::ConnSpec::all_to_all(), "excitatory" );
+  api::connect( nodes_in.first( N_rec ), ispikes, api::ConnSpec::all_to_all(), "excitatory" );
 
   std::printf( "Connecting network\n" );
 
   const auto all_nodes = nodes_ex + nodes_in;
-  nestpp::connect( nodes_ex, all_nodes, nestpp::ConnSpec::fixed_indegree( CE ), "excitatory" );
-  nestpp::connect( nodes_in, all_nodes, nestpp::ConnSpec::fixed_indegree( CI ), "inhibitory" );
+  api::connect( nodes_ex, all_nodes, api::ConnSpec::fixed_indegree( CE ), "excitatory" );
+  api::connect( nodes_in, all_nodes, api::ConnSpec::fixed_indegree( CI ), "inhibitory" );
 
   std::printf( "Simulating\n" );
-  nestpp::simulate( simtime );
+  api::simulate( simtime );
 
   // --- results -----------------------------------------------------------
   const long events_ex = espikes.get< long >( names::n_events );
@@ -212,16 +213,16 @@ main( int argc, char* argv[] )
   const double rate_ex = static_cast< double >( events_ex ) / simtime * 1000.0 / static_cast< double >( N_rec );
   const double rate_in = static_cast< double >( events_in ) / simtime * 1000.0 / static_cast< double >( N_rec );
 
-  const long num_synapses = nestpp::get< long >( nestpp::model_defaults( "excitatory" ), names::num_connections )
-    + nestpp::get< long >( nestpp::model_defaults( "inhibitory" ), names::num_connections );
+  const long num_synapses = api::get< long >( api::model_defaults( "excitatory" ), names::num_connections )
+    + api::get< long >( api::model_defaults( "inhibitory" ), names::num_connections );
 
   // NEST instruments itself; read its own stopwatches rather than adding a
   // clock of our own. The per-thread timers beside these (time_update and the
   // rest) are only filled in a build configured with detailed timers.
   const Dictionary kernel_final = kernel.status();
-  const double t_create = nestpp::get< double >( kernel_final, names::time_construction_create );
-  const double t_connect = nestpp::get< double >( kernel_final, names::time_construction_connect );
-  const double t_simulate = nestpp::get< double >( kernel_final, names::time_simulate );
+  const double t_create = api::get< double >( kernel_final, names::time_construction_create );
+  const double t_connect = api::get< double >( kernel_final, names::time_construction_connect );
+  const double t_simulate = api::get< double >( kernel_final, names::time_simulate );
 
   std::printf( "Brunel network simulation (C++, nest_cpp interface)\n" );
   std::printf( "Number of neurons : %ld\n", NE + NI );

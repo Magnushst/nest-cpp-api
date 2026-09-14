@@ -42,7 +42,7 @@ See [docs/01_state_of_the_kernel.md](docs/01_state_of_the_kernel.md).
 ## Layout
 
 ```
-include/nest_cpp/nest.hpp    the interface, header only, namespace nestpp
+include/nest/nest_api.h      the interface, header only, namespace nest::api
 docs/                        the audit, the interface, how to build and run
 <model>/                     one directory per case study, self documenting
 build.sh                     builds every model directory
@@ -50,7 +50,7 @@ build.sh                     builds every model directory
 
 | Path | What it is |
 | --- | --- |
-| `include/nest_cpp/nest.hpp` | The C++ interface. Header only, no build step. |
+| `include/nest/nest_api.h` | The C++ interface. Header only, no build step. |
 | `docs/01_state_of_the_kernel.md` | What the kernel API offers today, and what surprises a C++ caller. |
 | `docs/02_the_api.md` | What the interface does about each of those, and why. |
 | `docs/03_build_and_run.md` | Building against a NEST build tree, and running the checks. |
@@ -94,9 +94,9 @@ the C++ side. Every row below was met while writing a model against the kernel
 API directly, and three of them are run time failures that the compiler does not
 catch:
 
-| Kernel API today | In `nest_cpp` |
+| Kernel API today | In `nest::api` |
 | --- | --- |
-| `init_nest` and `shutdown_nest` called by hand; shutdown must be reached on every path | `nestpp::Kernel` is a scoped object |
+| `init_nest` and `shutdown_nest` called by hand; shutdown must be reached on every path | `nest::api::Kernel` is a scoped object |
 | `create` takes no parameters, so every population is created and then configured | `create(model, n, params)` |
 | `set_nc_status` takes a non const vector reference, so the vector cannot be a temporary | hidden inside `NodeCollection::set` |
 | `slice_nc` takes a 1 based start and an inclusive stop, undocumented; the natural call throws `BadParameter` | `slice(start, stop)` and `first(n)` with Python semantics |
@@ -123,7 +123,7 @@ between good and bad style:
   models use. Substituting it for `std::exp(1.0)` left the derived rates
   unchanged in the 17th digit and the spike files byte identical, establishing
   the substitution as exact rather than a silent perturbation.
-* **Failures are NEST exceptions.** The `nest_cpp` header throws
+* **Failures are NEST exceptions.** The `nest::api` header throws
   `nest::BadParameter`, `nest::TypeMismatch`, `nest::DimensionMismatch` and
   `nest::KeyError`, so a caller catches one hierarchy.
 * **Timing comes from NEST's own stopwatches.** The programs read
@@ -180,7 +180,7 @@ above:
 | --- | --- | --- | --- | --- | --- |
 | Python | 0.006 | 1.330 | 12.617 | 2.656 | 16.773 |
 | C++, kernel API | 0.007 | 1.273 | 12.184 | 2.467 | 15.953 |
-| C++, `nest_cpp` | 0.007 | 1.250 | 12.124 | 2.469 | 15.980 |
+| C++, `nest::api` | 0.007 | 1.250 | 12.124 | 2.469 | 15.980 |
 
 **The kernel phases agree, and the simulate phase does not resolve a
 difference.** The minima suggest C++ is half a second ahead, but the ranges

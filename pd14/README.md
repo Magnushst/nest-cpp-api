@@ -12,7 +12,7 @@ past a two population network.
 | File | What it is |
 | --- | --- |
 | `reference/` | The upstream PyNEST microcircuit, plotting removed. The baseline. See `reference/PROVENANCE.md`. |
-| `microcircuit.cpp` | The same model written against `nest_cpp`. |
+| `microcircuit.cpp` | The same model written against `nest::api`. |
 | `microcircuit_params.hpp` | The parameters and the derived network, in C++. Arithmetic only, no kernel. |
 | `check.sh` | Runs both and fails on any difference. |
 

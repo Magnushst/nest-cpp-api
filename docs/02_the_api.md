@@ -1,7 +1,10 @@
-# The nest_cpp interface
+# The nest::api interface
 
-`include/nest_cpp/nest.hpp` is a header only layer over
-`nestkernel/nest.h`, in namespace `nestpp`. It adds no simulation behaviour:
+`include/nest/nest_api.h` is a header only layer over `nestkernel/nest.h`, in
+namespace `nest::api`. It is written to be dropped into the NEST tree as
+`nestkernel/nest_api.h`, where it installs into `include/nest` and is included
+as `#include "nest_api.h"`, the same spelling as inside the tree. It adds no
+simulation behaviour:
 every call forwards to the kernel, the network is built in the same order, and
 the same random numbers are drawn. The proof of that is that
 `brunel/brunel_alpha.cpp` writes spike files byte identical to the
@@ -36,7 +39,7 @@ decision answers two of them at once, which is why the summary table in the
 ### 1. `Kernel` is a scoped object (finding 7)
 
 ```cpp
-nestpp::Kernel kernel;   // init_nest here
+nest::api::Kernel kernel;   // init_nest here
 kernel.reset();
 ...
 kernel.shutdown( 0 );    // explicit, with a real exit code
@@ -57,7 +60,7 @@ is harmless.
 ### 2. `create` takes parameters (finding 3)
 
 ```cpp
-const auto nodes_ex = nestpp::create( "iaf_psc_alpha", NE, neuron_params );
+const auto nodes_ex = nest::api::create( "iaf_psc_alpha", NE, neuron_params );
 ```
 
 This is the kernel's `create` followed by `set_nc_status`, with the non const
@@ -75,7 +78,7 @@ call to `dict()`. Two calls given the same `Params` cannot interfere.
 It is written as an initialiser list, which reads close to the Python:
 
 ```cpp
-const nestpp::Params neuron_params { { names::C_m, c_mem },
+const nest::api::Params neuron_params { { names::C_m, c_mem },
                                      { names::tau_m, tau_mem },
                                      { names::V_th, theta } };
 ```
@@ -107,8 +110,8 @@ one node raises `nest::DimensionMismatch`. A caller catches one hierarchy.
 ### 6. `ConnSpec` defaults the rule, `SynSpec` accepts a name (findings 4 and 5)
 
 ```cpp
-nestpp::connect( noise, nodes_ex, nestpp::ConnSpec::all_to_all(), "excitatory" );
-nestpp::connect( nodes_ex, all_nodes, nestpp::ConnSpec::fixed_indegree( CE ), "excitatory" );
+nest::api::connect( noise, nodes_ex, nest::api::ConnSpec::all_to_all(), "excitatory" );
+nest::api::connect( nodes_ex, all_nodes, nest::api::ConnSpec::fixed_indegree( CE ), "excitatory" );
 ```
 
 `ConnSpec` has named factories for the rules Brunel uses and falls back to
@@ -118,8 +121,8 @@ synapse dictionary is built inside `connect`.
 
 ### 7. `operator+` and the names are re-exported (finding 6)
 
-`nestpp::NodeCollection::operator+` forwards to the one in
-`nestkernel/node_collection.h`, and `nestpp::names` is an alias for
+`nest::api::NodeCollection::operator+` forwards to the one in
+`nestkernel/node_collection.h`, and `nest::api::names` is an alias for
 `nest::names`, so a program needs one include.
 
 ## Conventions taken from NEST rather than invented
@@ -170,9 +173,11 @@ work is all inside the kernel. See the table in the README.
 
 ## Open questions for the NEST team
 
-1. **Namespace.** `nestpp` is a placeholder. A real interface would presumably
-   live in `nest` itself, which makes the wrapper names collide with the kernel
-   names they forward to.
+1. **Namespace.** The interface sits in `nest::api`, nested inside the kernel's
+   own namespace, because the names deliberately match the kernel functions they
+   forward to: `nest::api::create` calls `nest::create`. Putting it directly in
+   `nest` would collide; a separate top level namespace would read as though it
+   were a separate project. This is a proposal, not a constraint.
 2. **Should the kernel API move rather than be wrapped?** Several findings, in
    particular the 1 based slice and the `AnyVector` status shape, are arguably
    defects in `nest.h` rather than ergonomics to be papered over. Fixing them at

@@ -36,7 +36,7 @@ gives two programs in `build/`:
 | Program | Source |
 | --- | --- |
 | `build/brunel_alpha_raw` | `brunel/brunel_alpha_raw.cpp`, against the kernel API as it is |
-| `build/brunel_alpha` | `brunel/brunel_alpha.cpp`, against the nest_cpp interface |
+| `build/brunel_alpha` | `brunel/brunel_alpha.cpp`, against the nest::api interface |
 
 The link line puts the three static libraries inside
 `-Wl,--start-group ... -Wl,--end-group`, because they refer to each other. No
@@ -136,7 +136,7 @@ brunel/parity.sh [scratch-dir]
 ```
 
 Runs the same network single threaded through the Python reference, the raw C++
-program and the `nest_cpp` one, four timed rounds after a discarded warm-up, and
+program and the `nest::api` one, four timed rounds after a discarded warm-up, and
 prints NEST's own create, connect and simulate timers, the wall clock of the
 whole process, and the difference between them. The order within a round is
 reversed on alternate rounds, so no implementation is always the one that runs
@@ -164,7 +164,7 @@ by hand, keep all three inside `-Wl,--start-group ... -Wl,--end-group`.
 
 **`nest::BadParameter: start < stop required.`** — a `slice_nc` call using 0
 based indices. The kernel wants a 1 based start and an inclusive stop. The
-nest_cpp interface converts for you; the raw program has to do it by hand.
+nest::api interface converts for you; the raw program has to do it by hand.
 
 **`nest::TypeMismatch` on a status read** — node collection status arrives as
 `AnyVector`, a vector of variants. See finding 2 in

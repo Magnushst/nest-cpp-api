@@ -20,12 +20,13 @@
 #include <string>
 #include <vector>
 
-#include "nest_cpp/nest.hpp"
+#include "nest_api.h"
 
 namespace
 {
 
-namespace names = nestpp::names;
+namespace api = nest::api;
+namespace names = nest::names;
 
 int failures = 0;
 int checks = 0;
@@ -80,22 +81,22 @@ main( int argc, char* argv[] )
 {
   ( void ) argc;
   ( void ) argv;
-  nestpp::Kernel kernel;
+  api::Kernel kernel;
   try
   {
   kernel.reset();
   kernel.set( { { names::resolution, 0.1 }, { names::print_time, false }, { names::rng_seed, 12345L } } );
 
   std::printf( "== kernel\n" );
-  close_to( nestpp::get< double >( kernel.status(), names::resolution ), 0.1, "resolution round trips" );
-  ok( nestpp::get< long >( kernel.status(), names::rng_seed ) == 12345, "rng_seed round trips" );
-  ok( nestpp::num_processes() >= 1, "num_processes is at least one" );
-  ok( nestpp::rank() >= 0 and nestpp::rank() < nestpp::num_processes(), "rank is within range" );
-  ok( nestpp::num_virtual_processes() >= nestpp::num_processes(), "virtual processes cover the ranks" );
+  close_to( api::get< double >( kernel.status(), names::resolution ), 0.1, "resolution round trips" );
+  ok( api::get< long >( kernel.status(), names::rng_seed ) == 12345, "rng_seed round trips" );
+  ok( api::num_processes() >= 1, "num_processes is at least one" );
+  ok( api::rank() >= 0 and api::rank() < api::num_processes(), "rank is within range" );
+  ok( api::num_virtual_processes() >= api::num_processes(), "virtual processes cover the ranks" );
 
   std::printf( "== node collections\n" );
-  const nestpp::Params neuron_params { { names::V_m, -60.0 }, { names::tau_m, 12.0 } };
-  const auto neurons = nestpp::create( "iaf_psc_alpha", 10, neuron_params );
+  const api::Params neuron_params { { names::V_m, -60.0 }, { names::tau_m, 12.0 } };
+  const auto neurons = api::create( "iaf_psc_alpha", 10, neuron_params );
   ok( neurons.size() == 10, "create returns the requested number of nodes" );
   close_to( neurons[ 0 ].get< double >( names::V_m ), -60.0, "create applies its parameters" );
   close_to( neurons[ 9 ].get< double >( names::tau_m ), 12.0, "parameters reach the last node too" );
@@ -127,7 +128,7 @@ main( int argc, char* argv[] )
   throws< nest::TypeMismatch >( [ & ] { neurons[ 0 ].get< long >( names::V_m ); }, "the wrong type" );
 
   // Per-node parameters, as the microcircuit gives its Poisson generators.
-  std::vector< nestpp::Params > per_node;
+  std::vector< api::Params > per_node;
   for ( int i = 0; i < 10; ++i )
   {
     per_node.push_back( { { names::V_m, -70.0 + i } } );
@@ -136,28 +137,28 @@ main( int argc, char* argv[] )
   const auto stepped = neurons.get_all< double >( names::V_m );
   ok( stepped.front() == -70.0 and stepped.back() == -61.0, "per-node parameters land on the right nodes" );
   throws< nest::DimensionMismatch >(
-    [ & ] { neurons.set( std::vector< nestpp::Params > { { { names::V_m, -70.0 } }, { { names::V_m, -70.0 } } } ); },
+    [ & ] { neurons.set( std::vector< api::Params > { { { names::V_m, -70.0 } }, { { names::V_m, -70.0 } } } ); },
     "a per-node vector of the wrong length" );
 
-  const auto rebuilt = nestpp::node_collection( ids );
+  const auto rebuilt = api::node_collection( ids );
   ok( rebuilt == neurons, "a collection rebuilt from IDs equals the original" );
-  ok( nestpp::get_nodes().size() >= neurons.size(), "get_nodes sees at least these nodes" );
+  ok( api::get_nodes().size() >= neurons.size(), "get_nodes sees at least these nodes" );
 
   std::printf( "== parameters\n" );
-  const auto two = nestpp::Parameter::constant( 2.0 );
-  const auto three = nestpp::Parameter::constant( 3.0 );
+  const auto two = api::Parameter::constant( 2.0 );
+  const auto three = api::Parameter::constant( 3.0 );
   close_to( ( two * three + 1.0 ).value(), 7.0, "parameter arithmetic" );
   close_to( ( three - two ).value(), 1.0, "parameter subtraction" );
   close_to( ( three / two ).value(), 1.5, "parameter division" );
-  close_to( nestpp::math::max( two, 5.0 ).value(), 5.0, "max" );
-  close_to( nestpp::math::min( two, 5.0 ).value(), 2.0, "min" );
-  close_to( nestpp::math::pow( two, 3.0 ).value(), 8.0, "pow" );
-  close_to( nestpp::math::exp( nestpp::Parameter::constant( 0.0 ) ).value(), 1.0, "exp" );
-  close_to( nestpp::math::sin( nestpp::Parameter::constant( 0.0 ) ).value(), 0.0, "sin" );
-  close_to( nestpp::math::cos( nestpp::Parameter::constant( 0.0 ) ).value(), 1.0, "cos" );
-  close_to( nestpp::math::compare( two, three, nestpp::math::Comparator::less ).value(), 1.0, "compare, true case" );
-  close_to( nestpp::math::compare( three, two, nestpp::math::Comparator::less ).value(), 0.0, "compare, false case" );
-  close_to( nestpp::math::conditional( nestpp::math::compare( two, three, nestpp::math::Comparator::less ), two, three )
+  close_to( api::math::max( two, 5.0 ).value(), 5.0, "max" );
+  close_to( api::math::min( two, 5.0 ).value(), 2.0, "min" );
+  close_to( api::math::pow( two, 3.0 ).value(), 8.0, "pow" );
+  close_to( api::math::exp( api::Parameter::constant( 0.0 ) ).value(), 1.0, "exp" );
+  close_to( api::math::sin( api::Parameter::constant( 0.0 ) ).value(), 0.0, "sin" );
+  close_to( api::math::cos( api::Parameter::constant( 0.0 ) ).value(), 1.0, "cos" );
+  close_to( api::math::compare( two, three, api::math::Comparator::less ).value(), 1.0, "compare, true case" );
+  close_to( api::math::compare( three, two, api::math::Comparator::less ).value(), 0.0, "compare, false case" );
+  close_to( api::math::conditional( api::math::compare( two, three, api::math::Comparator::less ), two, three )
               .value(),
     2.0,
     "conditional" );
@@ -165,8 +166,8 @@ main( int argc, char* argv[] )
 
   // A distribution, drawn per node. The bounds are what redraw guarantees; the
   // mean is not checked, because ten draws say nothing about it.
-  const auto bounded = nestpp::math::redraw( nestpp::random::normal( 0.0, 10.0 ), -1.0, 1.0 );
-  const std::vector< double > drawn = nestpp::apply( bounded, neurons );
+  const auto bounded = api::math::redraw( api::random::normal( 0.0, 10.0 ), -1.0, 1.0 );
+  const std::vector< double > drawn = api::apply( bounded, neurons );
   ok( drawn.size() == 10, "apply gives one value per node" );
   bool in_bounds = true;
   for ( const double v : drawn )
@@ -175,77 +176,77 @@ main( int argc, char* argv[] )
   }
   ok( in_bounds, "redraw keeps every value inside its bounds" );
 
-  neurons.set( { { names::V_m, nestpp::random::normal( -60.0, 5.0 ) } } );
+  neurons.set( { { names::V_m, api::random::normal( -60.0, 5.0 ) } } );
   const auto randomised = neurons.get_all< double >( names::V_m );
   ok( randomised[ 0 ] != randomised[ 1 ], "a distributed parameter gives each node its own value" );
 
   std::printf( "== connections\n" );
-  nestpp::copy_model( "static_synapse", "test_synapse", { { names::weight, 2.5 }, { names::delay, 1.0 } } );
+  api::copy_model( "static_synapse", "test_synapse", { { names::weight, 2.5 }, { names::delay, 1.0 } } );
   close_to(
-    nestpp::get< double >( nestpp::model_defaults( "test_synapse" ), names::weight ), 2.5, "copy_model sets defaults" );
-  nestpp::set_model_defaults( "test_synapse", { { names::weight, 3.5 } } );
-  close_to( nestpp::get< double >( nestpp::model_defaults( "test_synapse" ), names::weight ),
+    api::get< double >( api::model_defaults( "test_synapse" ), names::weight ), 2.5, "copy_model sets defaults" );
+  api::set_model_defaults( "test_synapse", { { names::weight, 3.5 } } );
+  close_to( api::get< double >( api::model_defaults( "test_synapse" ), names::weight ),
     3.5,
     "set_model_defaults changes them" );
 
   const auto sources = neurons.first( 2 );
   const auto targets = neurons.slice( 2, 6 );
-  nestpp::connect( sources, targets, nestpp::ConnSpec::all_to_all(), "test_synapse" );
-  auto conns = nestpp::get_connections( { { names::source, sources.handle() } } );
+  api::connect( sources, targets, api::ConnSpec::all_to_all(), "test_synapse" );
+  auto conns = api::get_connections( { { names::source, sources.handle() } } );
   ok( conns.size() == 8, "all_to_all makes sources times targets connections" );
   const auto weights = conns.get_all< double >( names::weight );
   ok( weights.size() == 8 and weights.front() == 3.5, "connection status reads back the weight" );
   conns.set( { { names::weight, 4.5 } } );
-  close_to( nestpp::get_connections( { { names::source, sources.handle() } } ).get_all< double >( names::weight ).front(),
+  close_to( api::get_connections( { { names::source, sources.handle() } } ).get_all< double >( names::weight ).front(),
     4.5,
     "connection status can be written" );
 
   // one_to_one requires the two collections to have the same size, as it does
   // in PyNEST.
   const auto pair_of_targets = targets.first( 2 );
-  nestpp::connect( pair_of_targets, sources, nestpp::ConnSpec::one_to_one(), "test_synapse" );
-  ok( nestpp::get_connections( { { names::source, pair_of_targets.handle() } } ).size() == 2,
+  api::connect( pair_of_targets, sources, api::ConnSpec::one_to_one(), "test_synapse" );
+  ok( api::get_connections( { { names::source, pair_of_targets.handle() } } ).size() == 2,
     "one_to_one connects the collections node by node" );
   throws< nest::DimensionMismatch >(
-    [ & ] { nestpp::connect( sources, targets, nestpp::ConnSpec::one_to_one(), "test_synapse" ); },
+    [ & ] { api::connect( sources, targets, api::ConnSpec::one_to_one(), "test_synapse" ); },
     "one_to_one between collections of different sizes" );
 
-  nestpp::connect( sources, targets, nestpp::ConnSpec::fixed_indegree( 2 ), "test_synapse" );
-  ok( nestpp::get_connections( { { names::source, sources.handle() } } ).size() == 8 + 4 * 2,
+  api::connect( sources, targets, api::ConnSpec::fixed_indegree( 2 ), "test_synapse" );
+  ok( api::get_connections( { { names::source, sources.handle() } } ).size() == 8 + 4 * 2,
     "fixed_indegree makes indegree times targets connections" );
 
-  nestpp::connect( sources, targets, nestpp::ConnSpec::fixed_total_number( 5 ), "test_synapse" );
-  ok( nestpp::get_connections( { { names::source, sources.handle() } } ).size() == 8 + 4 * 2 + 5,
+  api::connect( sources, targets, api::ConnSpec::fixed_total_number( 5 ), "test_synapse" );
+  ok( api::get_connections( { { names::source, sources.handle() } } ).size() == 8 + 4 * 2 + 5,
     "fixed_total_number makes exactly N connections" );
 
-  const size_t before = nestpp::get_connections().size();
-  nestpp::get_connections( { { names::source, pair_of_targets.handle() } } ).disconnect();
-  ok( nestpp::get_connections().size() == before - 2, "disconnecting removes exactly those connections" );
+  const size_t before = api::get_connections().size();
+  api::get_connections( { { names::source, pair_of_targets.handle() } } ).disconnect();
+  ok( api::get_connections().size() == before - 2, "disconnecting removes exactly those connections" );
 
   std::printf( "== simulation\n" );
-  const auto generator = nestpp::create( "poisson_generator", 1, { { names::rate, 1000.0 } } );
-  const auto recorder = nestpp::create( "spike_recorder" );
-  nestpp::connect( generator, neurons, nestpp::ConnSpec::all_to_all(), "test_synapse" );
-  nestpp::connect( neurons, recorder );
+  const auto generator = api::create( "poisson_generator", 1, { { names::rate, 1000.0 } } );
+  const auto recorder = api::create( "spike_recorder" );
+  api::connect( generator, neurons, api::ConnSpec::all_to_all(), "test_synapse" );
+  api::connect( neurons, recorder );
 
-  nestpp::simulate( 20.0 );
-  const double after_simulate = nestpp::get< double >( kernel.status(), names::biological_time );
+  api::simulate( 20.0 );
+  const double after_simulate = api::get< double >( kernel.status(), names::biological_time );
   close_to( after_simulate, 20.0, "simulate advances biological time" );
 
-  nestpp::prepare();
-  nestpp::run( 10.0 );
-  nestpp::run( 10.0 );
-  nestpp::cleanup();
-  close_to( nestpp::get< double >( kernel.status(), names::biological_time ), 40.0, "run continues where simulate left off" );
+  api::prepare();
+  api::run( 10.0 );
+  api::run( 10.0 );
+  api::cleanup();
+  close_to( api::get< double >( kernel.status(), names::biological_time ), 40.0, "run continues where simulate left off" );
   ok( recorder.get< long >( names::n_events ) > 0, "the network spiked and the recorder counted it" );
 
-  ok( not nestpp::print_nodes().empty(), "print_nodes produces something" );
+  ok( not api::print_nodes().empty(), "print_nodes produces something" );
 
   // Two calls given the same Params must not interfere: Dictionary is a shared
   // pointer, and the kernel marks entries as accessed while reading them.
-  const nestpp::Params shared { { names::V_m, -55.0 } };
-  const auto first_use = nestpp::create( "iaf_psc_alpha", 1, shared );
-  const auto second_use = nestpp::create( "iaf_psc_alpha", 1, shared );
+  const api::Params shared { { names::V_m, -55.0 } };
+  const auto first_use = api::create( "iaf_psc_alpha", 1, shared );
+  const auto second_use = api::create( "iaf_psc_alpha", 1, shared );
   close_to( first_use.get< double >( names::V_m ), -55.0, "a Params used once works" );
   close_to( second_use.get< double >( names::V_m ), -55.0, "the same Params used again works" );
 

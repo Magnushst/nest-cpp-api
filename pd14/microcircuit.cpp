@@ -36,12 +36,13 @@
 #include <vector>
 
 #include "microcircuit_params.hpp"
-#include "nest_cpp/nest.hpp"
+#include "nest_api.h"
 
 namespace
 {
 
-namespace names = nestpp::names;
+namespace api = nest::api;
+namespace names = nest::names;
 
 constexpr double INF = std::numeric_limits< double >::infinity();
 
@@ -166,7 +167,7 @@ main( int argc, char* argv[] )
 
   // The kernel comes up here and goes down when this scope ends, on every path
   // including the one an exception takes.
-  nestpp::Kernel kernel;
+  api::Kernel kernel;
 
   // --- Network.__setup_nest ----------------------------------------------
   kernel.reset();
@@ -176,16 +177,16 @@ main( int argc, char* argv[] )
     { names::overwrite_files, true },
     { names::print_time, opts.print_time } } );
 
-  const double resolution = nestpp::get< double >( kernel.status(), names::resolution );
+  const double resolution = api::get< double >( kernel.status(), names::resolution );
 
   // Every rank runs this same program; only rank 0 says so, as the upstream
   // model does.
-  const bool speak = nestpp::rank() == 0;
-  const long num_ranks = nestpp::num_processes();
+  const bool speak = api::rank() == 0;
+  const long num_ranks = api::num_processes();
   if ( speak )
   {
-    std::printf( "RNG seed: %ld\n", nestpp::get< long >( kernel.status(), names::rng_seed ) );
-    std::printf( "Total number of virtual processes: %ld\n", nestpp::num_virtual_processes() );
+    std::printf( "RNG seed: %ld\n", api::get< long >( kernel.status(), names::rng_seed ) );
+    std::printf( "Total number of virtual processes: %ld\n", api::num_virtual_processes() );
   }
 
   // --- Network.__create_neuronal_populations ------------------------------
@@ -196,11 +197,11 @@ main( int argc, char* argv[] )
   {
     std::printf( "Creating neuronal populations.\n" );
   }
-  std::vector< nestpp::NodeCollection > pops;
+  std::vector< api::NodeCollection > pops;
   pops.reserve( pd14::NUM_POPS );
   for ( size_t i = 0; i < pd14::NUM_POPS; ++i )
   {
-    const auto population = nestpp::create( "iaf_psc_exp", net.num_neurons[ i ] );
+    const auto population = api::create( "iaf_psc_exp", net.num_neurons[ i ] );
     population.set( { { names::tau_syn_ex, pd14::TAU_SYN },
       { names::tau_syn_in, pd14::TAU_SYN },
       { names::E_L, pd14::E_L },
@@ -208,7 +209,7 @@ main( int argc, char* argv[] )
       { names::V_reset, pd14::V_RESET },
       { names::t_ref, pd14::T_REF },
       { names::I_e, net.dc_amp[ i ] } } );
-    population.set( { { names::V_m, nestpp::random::normal( pd14::V0_MEAN[ i ], pd14::V0_STD[ i ] ) } } );
+    population.set( { { names::V_m, api::random::normal( pd14::V0_MEAN[ i ], pd14::V0_STD[ i ] ) } } );
     pops.push_back( population );
   }
 
@@ -235,7 +236,7 @@ main( int argc, char* argv[] )
   {
     std::printf( "Creating recording devices.\n" );
   }
-  const auto spike_recorders = nestpp::create( "spike_recorder",
+  const auto spike_recorders = api::create( "spike_recorder",
     pd14::NUM_POPS,
     { { names::record_to, std::string( "ascii" ) }, { names::label, opts.data_path + "/spike_recorder" } } );
 
@@ -244,9 +245,9 @@ main( int argc, char* argv[] )
   {
     std::printf( "Creating Poisson generators for background input.\n" );
   }
-  const auto poisson_bg_input = nestpp::create( "poisson_generator", pd14::NUM_POPS );
+  const auto poisson_bg_input = api::create( "poisson_generator", pd14::NUM_POPS );
   {
-    std::vector< nestpp::Params > rates;
+    std::vector< api::Params > rates;
     rates.reserve( pd14::NUM_POPS );
     for ( size_t i = 0; i < pd14::NUM_POPS; ++i )
     {
@@ -278,12 +279,12 @@ main( int argc, char* argv[] )
       const double delay_mean = j % 2 == 0 ? pd14::DELAY_EXC_MEAN : pd14::DELAY_INH_MEAN;
       const double delay_std = delay_mean * pd14::DELAY_REL_STD;
 
-      const nestpp::SynSpec syn { nestpp::Params {
+      const api::SynSpec syn { api::Params {
         { names::synapse_model, std::string( "static_synapse" ) },
-        { names::weight, nestpp::math::redraw( nestpp::random::normal( weight_mean, weight_std ), weight_min, weight_max ) },
-        { names::delay, nestpp::math::redraw( nestpp::random::normal( delay_mean, delay_std ), delay_min, INF ) } } };
+        { names::weight, api::math::redraw( api::random::normal( weight_mean, weight_std ), weight_min, weight_max ) },
+        { names::delay, api::math::redraw( api::random::normal( delay_mean, delay_std ), delay_min, INF ) } } };
 
-      nestpp::connect( pops[ j ], pops[ i ], nestpp::ConnSpec::fixed_total_number( net.num_synapses[ i ][ j ] ), syn );
+      api::connect( pops[ j ], pops[ i ], api::ConnSpec::fixed_total_number( net.num_synapses[ i ][ j ] ), syn );
     }
   }
 
@@ -294,7 +295,7 @@ main( int argc, char* argv[] )
   }
   for ( size_t i = 0; i < pd14::NUM_POPS; ++i )
   {
-    nestpp::connect( pops[ i ], spike_recorders[ static_cast< long >( i ) ] );
+    api::connect( pops[ i ], spike_recorders[ static_cast< long >( i ) ] );
   }
 
   // --- Network.__connect_poisson_bg_input ---------------------------------
@@ -304,18 +305,18 @@ main( int argc, char* argv[] )
   }
   for ( size_t i = 0; i < pd14::NUM_POPS; ++i )
   {
-    const nestpp::SynSpec syn { nestpp::Params { { names::synapse_model, std::string( "static_synapse" ) },
+    const api::SynSpec syn { api::Params { { names::synapse_model, std::string( "static_synapse" ) },
       { names::weight, net.weight_ext },
       { names::delay, pd14::DELAY_POISSON } } };
-    nestpp::connect( poisson_bg_input[ static_cast< long >( i ) ], pops[ i ], nestpp::ConnSpec::all_to_all(), syn );
+    api::connect( poisson_bg_input[ static_cast< long >( i ) ], pops[ i ], api::ConnSpec::all_to_all(), syn );
   }
 
   // Building the presynaptic side of the connections happens on the first
   // simulate. The upstream model forces it here so that it is charged to the
   // connection phase rather than to the simulation; doing the same keeps the
   // reported timings comparable.
-  nestpp::prepare();
-  nestpp::cleanup();
+  api::prepare();
+  api::cleanup();
 
   // --- simulate ------------------------------------------------------------
   // A presimulation first, whose spikes are recorded but whose startup
@@ -324,20 +325,20 @@ main( int argc, char* argv[] )
   {
     std::printf( "Simulating %.1f ms.\n", opts.presim );
   }
-  nestpp::simulate( opts.presim );
+  api::simulate( opts.presim );
   if ( speak )
   {
     std::printf( "Simulating %.1f ms.\n", opts.sim );
   }
-  nestpp::simulate( opts.sim );
+  api::simulate( opts.sim );
 
   // --- results --------------------------------------------------------------
   const Dictionary kernel_final = kernel.status();
-  const double t_create = nestpp::get< double >( kernel_final, names::time_construction_create );
-  const double t_connect = nestpp::get< double >( kernel_final, names::time_construction_connect );
-  const double t_simulate = nestpp::get< double >( kernel_final, names::time_simulate );
-  const long network_size = nestpp::get< long >( kernel_final, names::network_size );
-  const long num_connections = nestpp::get< long >( kernel_final, names::num_connections );
+  const double t_create = api::get< double >( kernel_final, names::time_construction_create );
+  const double t_connect = api::get< double >( kernel_final, names::time_construction_connect );
+  const double t_simulate = api::get< double >( kernel_final, names::time_simulate );
+  const long network_size = api::get< long >( kernel_final, names::network_size );
+  const long num_connections = api::get< long >( kernel_final, names::num_connections );
   const double t_total = opts.presim + opts.sim;
 
   if ( not speak )

@@ -7,7 +7,7 @@ driven by an external Poisson process. It is the standard small NEST example and
 the first model in this repository.
 
 This directory is self contained. Everything specific to the network lives here;
-the C++ interface it uses lives in `../include/nest_cpp/nest.hpp` and is shared
+the C++ interface it uses lives in `../include/nest/nest_api.h` and is shared
 with the models that will sit beside this one.
 
 ## The three programs
@@ -16,7 +16,7 @@ with the models that will sit beside this one.
 | --- | --- |
 | `brunel_alpha_ref.py` | The upstream `pynest/examples/brunel_alpha_nest.py`, with the plotting removed. The baseline. |
 | `brunel_alpha_raw.cpp` | The same network in C++ against `nestkernel/nest.h` as it is today. The control. |
-| `brunel_alpha.cpp` | The same network in C++ against `nest_cpp`. |
+| `brunel_alpha.cpp` | The same network in C++ against `nest::api`. |
 
 All three build the same network in the same order, so they draw the same random
 numbers and produce the same spikes. That is checked, not assumed.

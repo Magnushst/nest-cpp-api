@@ -1,5 +1,5 @@
 /*
- *  nest_cpp/nest.hpp
+ *  nest_api.h
  *
  *  A user-facing C++ interface to the NEST simulation kernel.
  *
@@ -21,8 +21,8 @@
  *  Requires C++20. Link against a NEST build tree; see build.sh.
  */
 
-#ifndef NEST_CPP_NEST_HPP
-#define NEST_CPP_NEST_HPP
+#ifndef NEST_API_H
+#define NEST_API_H
 
 #include <deque>
 #include <map>
@@ -39,7 +39,16 @@
 #include "numerics.h"
 #include "parameter.h"
 
-namespace nestpp
+namespace nest
+{
+
+/**
+ * The user-facing C++ interface.
+ *
+ * Kept in a nested namespace because the names here deliberately match the
+ * kernel functions they forward to: @c nest::api::create calls @c nest::create.
+ */
+namespace api
 {
 
 /**
@@ -92,7 +101,7 @@ scalar( const Dictionary& dict, const std::string& key )
 {
   if ( not dict.known( key ) )
   {
-    throw nest::KeyError( key, "Dictionary", "nestpp::get" );
+    throw nest::KeyError( key, "Dictionary", "nest::api::get" );
   }
 
   const any_type& value = dict.at( key );
@@ -591,7 +600,7 @@ public:
   {
     if ( start < 0 or stop < 0 )
     {
-      throw nest::BadParameter( "nestpp::NodeCollection::slice: negative indices are not supported" );
+      throw nest::BadParameter( "nest::api::NodeCollection::slice: negative indices are not supported" );
     }
     return NodeCollection( nest::slice_nc( handle_, start + 1, stop, step ) );
   }
@@ -677,7 +686,7 @@ public:
     const Dictionary d = status();
     if ( not d.known( key ) )
     {
-      throw nest::KeyError( key, "Dictionary", "nestpp::NodeCollection::get_all" );
+      throw nest::KeyError( key, "Dictionary", "nest::api::NodeCollection::get_all" );
     }
 
     const any_type& value = d.at( key );
@@ -1136,6 +1145,7 @@ print_nodes()
   return nest::print_nodes_to_string();
 }
 
-} // namespace nestpp
+} // namespace api
+} // namespace nest
 
-#endif /* NEST_CPP_NEST_HPP */
+#endif /* NEST_API_H */
